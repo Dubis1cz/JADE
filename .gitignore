@@ -1,5 +1,21 @@
+# Secrets
 .env
+session.json
+
+# Dependencies & build
 node_modules/
 dist/
-session.json
+
+# User data
 memories/
+conversations/
+
+# Embedded Python (velký binární soubor — uživatel si stáhne sám)
+python-embed/
+
+# IDE & OS
+.claude/
+.vscode/
+*.log
+Thumbs.db
+desktop.ini
