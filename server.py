@@ -34,6 +34,11 @@ def _load_env():
 _load_env()
 
 ANTHROPIC_KEY        = os.environ.get('ANTHROPIC_KEY', '')
+# ── Proxy config ──────────────────────────────────────────────────────────────
+DEFAULT_PROXY_URL    = 'REPLACE_WITH_YOUR_RAILWAY_URL'  # baked-in default URL
+APP_SECRET           = 'REPLACE_WITH_YOUR_APP_SECRET'   # must match Railway APP_SECRET
+PROXY_URL            = os.environ.get('PROXY_URL', DEFAULT_PROXY_URL).rstrip('/')
+PROXY_CODE           = os.environ.get('PROXY_CODE', '')  # auto-filled after registration
 ELEVENLABS_KEY       = os.environ.get('ELEVENLABS_KEY', '')
 GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
@@ -389,29 +394,89 @@ def build_system(base_system, mem):
     mem_block = ('\n\n--- JARVIS MEMORY ---\n' + mem_str + '\n--- END MEMORY ---') if mem_str else ''
     return base_system + mem_block + SEARCH_INSTRUCTIONS + MEM_INSTRUCTIONS
 
-def call_anthropic(payload):
-    req = urllib.request.Request(
+def proxy_register(email: str) -> bool:
+    """Auto-register email with proxy server. Saves code to .env. Returns True on success."""
+    global PROXY_CODE
+    url = PROXY_URL.rstrip('/')
+    if not url or url == 'REPLACE_WITH_YOUR_RAILWAY_URL':
+        return False
+    try:
+        payload = json.dumps({'email': email}).encode()
+        req = urllib.request.Request(
+            f'{url}/api/register',
+            data=payload,
+            method='POST',
+            headers={
+                'Content-Type':  'application/json',
+                'X-App-Secret':  APP_SECRET,
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+            code = data.get('code', '')
+            if not code:
+                return False
+            # Save to .env
+            env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+            lines = []
+            if os.path.exists(env_path):
+                with open(env_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+            found = False
+            for i, line in enumerate(lines):
+                if line.startswith('PROXY_CODE='):
+                    lines[i] = f'PROXY_CODE={code}\n'
+                    found = True; break
+            if not found:
+                lines.append(f'PROXY_CODE={code}\n')
+            with open(env_path, 'w', encoding='utf-8') as f:
+                f.writelines(lines)
+            os.environ['PROXY_CODE'] = code
+            PROXY_CODE = code
+            print(f'[PROXY] Registered {email} — code saved')
+            return True
+    except Exception as e:
+        print(f'[PROXY] Registration failed: {e}')
+        return False
+
+def _anthropic_url():
+    """Returns (url, headers) — uses proxy if configured, otherwise direct Anthropic."""
+    if PROXY_URL and PROXY_CODE:
+        return (
+            f'{PROXY_URL}/v1/messages',
+            {
+                'Content-Type':  'application/json',
+                'X-Access-Code': PROXY_CODE,
+            }
+        )
+    return (
         'https://api.anthropic.com/v1/messages',
-        data=json.dumps(payload).encode(),
-        headers={
+        {
             'Content-Type':      'application/json',
             'x-api-key':         ANTHROPIC_KEY,
-            'anthropic-version': '2023-06-01'
-        }, method='POST')
+            'anthropic-version': '2023-06-01',
+        }
+    )
+
+def call_anthropic(payload):
+    url, headers = _anthropic_url()
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode(),
+        headers=headers,
+        method='POST'
+    )
     with urllib.request.urlopen(req) as r:
         return json.loads(r.read())
 
 def stream_anthropic(payload):
     """Generátor: vrací textové chunky ze streaming Anthropic API."""
     p = {**payload, 'stream': True}
+    url, headers = _anthropic_url()
     req = urllib.request.Request(
-        'https://api.anthropic.com/v1/messages',
+        url,
         data=json.dumps(p).encode(),
-        headers={
-            'Content-Type':      'application/json',
-            'x-api-key':         ANTHROPIC_KEY,
-            'anthropic-version': '2023-06-01',
-        },
+        headers=headers,
         method='POST'
     )
     with urllib.request.urlopen(req) as resp:
@@ -513,6 +578,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 self.send_json(200, {'authenticated': False})
 
+        # ── Config read (masked keys) ─────────────────────────────────────────
+        elif self.path == '/api/config':
+            def mask(v): return (v[:8] + '...' + v[-4:]) if len(v) > 14 else ('*' * len(v) if v else '')
+            proxy_url  = os.environ.get('PROXY_URL', '')
+            proxy_code = os.environ.get('PROXY_CODE', '')
+            self.send_json(200, {
+                'anthropic_set':  bool(os.environ.get('ANTHROPIC_KEY')),
+                'elevenlabs_set': bool(os.environ.get('ELEVENLABS_KEY')),
+                'supabase_set':   bool(os.environ.get('SUPABASE_URL')),
+                'anthropic_mask': mask(os.environ.get('ANTHROPIC_KEY', '')),
+                'proxy_set':      bool(proxy_url and proxy_code),
+                'proxy_url':      proxy_url,
+                'proxy_code_set': bool(proxy_code),
+                'proxy_code_mask': mask(proxy_code),
+            })
+
         # ── Memory read ───────────────────────────────────────────────────────
         elif self.path == '/api/memory':
             self.send_json(200, load_memory())
@@ -561,6 +642,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers(); self.wfile.write(body)
 
     def do_POST(self):
+        global ANTHROPIC_KEY, SUPABASE_URL, SUPABASE_KEY, PROXY_URL, PROXY_CODE
         length = int(self.headers.get('Content-Length', 0))
         body   = self.rfile.read(length)
 
@@ -574,6 +656,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 name  = mem.get('profile',{}).get('firstname', email.split('@')[0])
                 user  = {'email': email, 'name': name, 'picture': ''}
                 save_session({'user': user, 'authenticated': True})
+                # Auto-register with proxy in background (only if no code yet)
+                if not PROXY_CODE:
+                    import threading
+                    threading.Thread(target=proxy_register, args=(email,), daemon=True).start()
                 self.send_json(200, {'ok': True, 'isNewUser': is_new, 'name': name, 'memory': mem})
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
@@ -632,6 +718,48 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         self.send_json(200, {'ok': True, 'source': 'local', 'memory': mem})
                 except Exception as e:
                     self.send_json(500, {'error': str(e)})
+
+        # ── Config write (save API keys to .env) ─────────────────────────────
+        elif self.path == '/api/config':
+            try:
+                data = json.loads(body)
+                env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+                # Read existing .env
+                lines = []
+                if os.path.exists(env_path):
+                    with open(env_path, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                # Update or add keys
+                key_map = {
+                    'ANTHROPIC_KEY':   data.get('anthropic_key', '').strip(),
+                    'ELEVENLABS_KEY':  data.get('elevenlabs_key', '').strip(),
+                    'SUPABASE_URL':    data.get('supabase_url', '').strip(),
+                    'SUPABASE_KEY':    data.get('supabase_key', '').strip(),
+                    'PROXY_URL':       data.get('proxy_url', '').strip().rstrip('/'),
+                    'PROXY_CODE':      data.get('proxy_code', '').strip(),
+                }
+                for key, val in key_map.items():
+                    if not val:
+                        continue  # skip empty — don't overwrite existing
+                    found = False
+                    for i, line in enumerate(lines):
+                        if line.startswith(key + '='):
+                            lines[i] = f'{key}={val}\n'
+                            found = True; break
+                    if not found:
+                        lines.append(f'{key}={val}\n')
+                    os.environ[key] = val  # apply immediately without restart
+                with open(env_path, 'w', encoding='utf-8') as f:
+                    f.writelines(lines)
+                # Reload globals
+                ANTHROPIC_KEY = os.environ.get('ANTHROPIC_KEY', '')
+                SUPABASE_URL  = os.environ.get('SUPABASE_URL', '').rstrip('/')
+                SUPABASE_KEY  = os.environ.get('SUPABASE_KEY', '')
+                PROXY_URL     = os.environ.get('PROXY_URL', '').rstrip('/')
+                PROXY_CODE    = os.environ.get('PROXY_CODE', '')
+                self.send_json(200, {'ok': True})
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
 
         # ── Memory write ──────────────────────────────────────────────────────
         elif self.path == '/api/memory':

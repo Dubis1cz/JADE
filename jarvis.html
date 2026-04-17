@@ -1520,6 +1520,9 @@
       <button class="settings-nav-item" id="stab-btn-voice" onclick="showSettingsTab('voice')">
         <span class="settings-nav-icon">🎙️</span> VOICE
       </button>
+      <button class="settings-nav-item" id="stab-btn-apikeys" onclick="showSettingsTab('apikeys')">
+        <span class="settings-nav-icon">🔑</span> API KEYS
+      </button>
       <button class="settings-nav-item" id="stab-btn-display" onclick="showSettingsTab('display')">
         <span class="settings-nav-icon">🖥️</span> DISPLAY
       </button>
@@ -1764,6 +1767,75 @@
         </div>
       </div>
 
+      <!-- API Keys tab -->
+      <div class="settings-tab" id="stab-apikeys">
+        <div class="settings-tab-title">API KEYS</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <!-- Proxy status (auto-registered, no user input needed) -->
+          <div class="profile-section-label">AI CONNECTION</div>
+
+          <div class="profile-field">
+            <label class="profile-label">
+              Shared Server
+              <span id="proxy-badge" style="float:right;font-size:8px;letter-spacing:1px"></span>
+            </label>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">
+              Automaticky aktivováno při přihlášení — nepotřebuješ vlastní API klíč.
+            </span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">OWN API KEY (optional override)</div>
+
+          <div class="profile-field">
+            <label class="profile-label">
+              Anthropic API Key
+              <span id="anthropic-badge" style="float:right;font-size:8px;letter-spacing:1px"></span>
+            </label>
+            <input class="profile-input" id="key-anthropic" type="password"
+                   placeholder="sk-ant-api03-..."
+                   autocomplete="off"/>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">
+              Získej na <span style="color:var(--hud-blue)">console.anthropic.com</span> → API Keys
+            </span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">OPTIONAL — CLOUD SYNC</div>
+
+          <div class="profile-field">
+            <label class="profile-label">
+              Supabase URL
+              <span id="supabase-badge" style="float:right;font-size:8px;letter-spacing:1px"></span>
+            </label>
+            <input class="profile-input" id="key-supabase-url" type="text"
+                   placeholder="https://xxxx.supabase.co"
+                   autocomplete="off"/>
+          </div>
+
+          <div class="profile-field">
+            <label class="profile-label">Supabase Service Key</label>
+            <input class="profile-input" id="key-supabase-key" type="password"
+                   placeholder="eyJhbGci..."
+                   autocomplete="off"/>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">
+              Supabase → Project Settings → API → service_role key (pro cloud sync paměti)
+            </span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:16px;margin-top:4px">
+            <button class="profile-save-btn" onclick="saveApiKeys()">SAVE KEYS</button>
+            <span class="profile-status" id="apikeys-status"></span>
+          </div>
+
+          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.25);margin-top:8px;line-height:1.8">
+            Klíče jsou uloženy lokálně v souboru .env — nikdy se neodesílají na jiné servery než ty, které zadáš.
+          </div>
+
+        </div>
+      </div>
+
       <!-- Display tab -->
       <div class="settings-tab" id="stab-display">
         <div class="settings-tab-title">DISPLAY · WINDOW PLACEMENT</div>
@@ -1918,6 +1990,7 @@
     if (tab === 'profile') loadProfileForm();
     if (tab === 'ai')      loadAIConfig();
     if (tab === 'voice')   loadVoiceTab();
+    if (tab === 'apikeys') loadApiKeysTab();
   }
 
   // ─── AI Config ────────────────────────────────────────────────────────────
@@ -2207,6 +2280,54 @@
     if (!window.electronAPI?.moveToDisplay) return;
     window.electronAPI.moveToDisplay(displayId);
     setTimeout(loadDisplayList, 400);
+  }
+
+  async function loadApiKeysTab() {
+    try {
+      const r = await fetch('/api/config');
+      const data = await r.json();
+      const badge = (set, id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = set ? '✓ SET' : 'NOT SET';
+          el.style.color = set ? 'var(--hud-green)' : 'rgba(255,85,85,0.7)';
+        }
+      };
+      badge(data.proxy_set,     'proxy-badge');
+      badge(data.anthropic_set, 'anthropic-badge');
+      badge(data.supabase_set,  'supabase-badge');
+    } catch(e) { console.warn('[CONFIG]', e.message); }
+  }
+
+  async function saveApiKeys() {
+    const get = id => document.getElementById(id)?.value.trim() || '';
+    const payload = {
+      anthropic_key: get('key-anthropic'),
+      supabase_url:  get('key-supabase-url'),
+      supabase_key:  get('key-supabase-key'),
+    };
+    const st = document.getElementById('apikeys-status');
+    st.textContent = ''; st.className = 'profile-status';
+    try {
+      const r = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok) throw new Error('Server error');
+      // Clear sensitive fields after save
+      ['key-anthropic', 'key-supabase-key'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      st.textContent = '✓ SAVED — active immediately';
+      st.className = 'profile-status ok';
+      loadApiKeysTab(); // refresh badges
+      setTimeout(() => { st.textContent = ''; }, 4000);
+    } catch(e) {
+      st.textContent = '✗ SAVE FAILED';
+      st.className = 'profile-status err';
+    }
   }
 
   async function loadHistoryList() {
