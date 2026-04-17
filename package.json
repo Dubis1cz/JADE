@@ -1,6 +1,6 @@
 {
   "name": "jarvis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "J.A.R.V.I.S. - Just A Rather Very Intelligent System",
   "author": "Dubis1cz",
   "main": "src/main.js",
@@ -35,9 +35,10 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "jarvis.html", "to": "jarvis.html" },
-      { "from": "server.py",   "to": "server.py"   },
-      { "from": "python-embed/",  "to": "python-embed/", "filter": ["**/*"] }
+      { "from": "jarvis.html",  "to": "jarvis.html"  },
+      { "from": "login.html",   "to": "login.html"   },
+      { "from": "server.py",    "to": "server.py"    },
+      { "from": "python-embed/", "to": "python-embed/", "filter": ["**/*"] }
     ]
   },
   "dependencies": {
