@@ -1,0 +1,3241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --hud-blue: #00d4ff;
+    --hud-blue-dim: rgba(0, 212, 255, 0.15);
+    --hud-blue-glow: rgba(0, 212, 255, 0.4);
+    --hud-orange: #ff6b2b;
+    --hud-orange-dim: rgba(255, 107, 43, 0.15);
+    --hud-green: #00ff88;
+    --hud-dark: #020810;
+    --hud-panel: rgba(0, 20, 40, 0.85);
+    --hud-border: rgba(0, 212, 255, 0.3);
+    --text-primary: #e8f4ff;
+    --text-dim: rgba(0, 212, 255, 0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--hud-dark);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridPulse 8s ease-in-out infinite;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,212,255,0.04) 0%, transparent 70%);
+    z-index: 0;
+    animation: corePulse 4s ease-in-out infinite;
+  }
+
+  @keyframes gridPulse {
+    0%,100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  @keyframes corePulse {
+    0%,100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+
+  /* Corner brackets */
+  .hud-corner {
+    position: fixed;
+    width: 60px; height: 60px;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .hud-corner::before, .hud-corner::after {
+    content: '';
+    position: absolute;
+    background: var(--hud-blue);
+    animation: cornerGlow 3s ease-in-out infinite;
+  }
+  .hud-corner::before { width: 100%; height: 2px; }
+  .hud-corner::after  { width: 2px; height: 100%; }
+  .hud-corner.tl { top: 16px; left: 16px; }
+  .hud-corner.tr { top: 16px; right: 16px; transform: scaleX(-1); }
+  .hud-corner.bl { bottom: 16px; left: 16px; transform: scaleY(-1); }
+  .hud-corner.br { bottom: 16px; right: 16px; transform: scale(-1); }
+
+  @keyframes cornerGlow {
+    0%,100% { box-shadow: 0 0 6px var(--hud-blue-glow); opacity: 0.8; }
+    50% { box-shadow: 0 0 14px var(--hud-blue-glow); opacity: 1; }
+  }
+
+  /* Main layout */
+  .hud-layout {
+    position: relative;
+    z-index: 5;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: 60px 1fr 100px;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  /* Top bar */
+  .top-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--hud-border);
+    padding-bottom: 8px;
+  }
+
+  .title-block {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .title-main {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--hud-blue);
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px var(--hud-blue-glow);
+  }
+
+  .title-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  .status-row {
+    display: flex;
+    gap: 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--hud-green);
+    box-shadow: 0 0 8px var(--hud-green);
+    margin-right: 6px;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Left panel */
+  .panel-left {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Right panel */
+  .panel-right {
+    grid-column: 3;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* HUD panel base */
+  .hud-panel {
+    background: var(--hud-panel);
+    border: 1px solid var(--hud-border);
+    padding: 14px;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .hud-panel::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -1px; left: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--hud-blue);
+    background: var(--hud-dark);
+    padding: 0 6px;
+    text-transform: uppercase;
+  }
+
+  /* ── Arc Reactor ─────────────────────────────────────────────────────────── */
+  .reactor-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 0; }
+  .reactor { position:relative; width:130px; height:130px; }
+  .reactor canvas { position:absolute; inset:0; width:100%; height:100%; }
+  .reactor svg    { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+
+  /* Dim static bg rings */
+  .r-bg { fill:none; stroke:rgba(0,212,255,0.07); stroke-width:1; }
+
+  /* Base ring style */
+  .r-ring { fill:none; stroke-linecap:round; transform-box:fill-box; transform-origin:center; }
+
+  /* Spinning rings */
+  .r-cw  { animation:rCW  linear infinite; }
+  .r-ccw { animation:rCCW linear infinite; }
+
+  .r-outer     { stroke:var(--hud-blue);  stroke-width:2.5; stroke-dasharray:285 55;
+                 filter:drop-shadow(0 0 5px var(--hud-blue));  animation-duration:5s; }
+  .r-outer-dim { stroke:rgba(0,212,255,.18); stroke-width:1; stroke-dasharray:12 328;
+                 animation-duration:5s; animation-delay:-2.5s; }
+  .r-mid       { stroke:var(--hud-orange); stroke-width:2; stroke-dasharray:165 90;
+                 filter:drop-shadow(0 0 4px var(--hud-orange)); animation-duration:3.2s; }
+  .r-mid-dim   { stroke:rgba(255,107,43,.18); stroke-width:1; stroke-dasharray:22 233;
+                 animation-duration:3.2s; animation-delay:-1.6s; }
+  .r-inner     { stroke:var(--hud-blue);  stroke-width:2; stroke-dasharray:75 95;
+                 filter:drop-shadow(0 0 3px var(--hud-blue));  animation-duration:1.8s; }
+
+  /* Hex inner structure */
+  .r-hex  { fill:none; stroke:rgba(0,212,255,.2);  stroke-width:1; }
+  .r-tri  { fill:none; stroke:rgba(0,212,255,.11); stroke-width:.8; }
+
+  /* Pulsing core ring */
+  .r-core { fill:rgba(0,212,255,.1); stroke:var(--hud-blue); stroke-width:1.5;
+            transform-box:fill-box; transform-origin:center;
+            animation:rCorePulse 2s ease-in-out infinite; }
+
+  /* Center glow (HTML overlay) */
+  .reactor-glow {
+    position:absolute; top:50%; left:50%; pointer-events:none;
+    transform:translate(-50%,-50%);
+    width:18px; height:18px; border-radius:50%;
+    background:radial-gradient(circle,#fff 0%,var(--hud-blue) 35%,rgba(0,212,255,.3) 70%,transparent 100%);
+    box-shadow:0 0 12px var(--hud-blue),0 0 28px rgba(0,212,255,.5),0 0 55px rgba(0,212,255,.15);
+    animation:rGlowPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes rCW  { to { transform:rotate( 360deg) } }
+  @keyframes rCCW { to { transform:rotate(-360deg) } }
+  @keyframes rCorePulse { 0%,100%{transform:scale(1);   opacity:.85} 50%{transform:scale(1.22); opacity:1}   }
+  @keyframes rGlowPulse {
+    0%,100%{ transform:translate(-50%,-50%) scale(1);   box-shadow:0 0 12px var(--hud-blue),0 0 28px rgba(0,212,255,.5); }
+    50%    { transform:translate(-50%,-50%) scale(1.35); box-shadow:0 0 22px var(--hud-blue),0 0 50px rgba(0,212,255,.7),0 0 80px rgba(0,212,255,.18); }
+  }
+
+  /* ── State: thinking (oranžová, rychlejší) ── */
+  .reactor.state-thinking .r-outer     { animation-duration:1.6s; stroke:var(--hud-orange); filter:drop-shadow(0 0 7px var(--hud-orange)); }
+  .reactor.state-thinking .r-outer-dim { animation-duration:1.6s; }
+  .reactor.state-thinking .r-mid       { animation-duration:.85s; stroke:var(--hud-blue);   filter:drop-shadow(0 0 5px var(--hud-blue)); }
+  .reactor.state-thinking .r-mid-dim   { animation-duration:.85s; }
+  .reactor.state-thinking .r-inner     { animation-duration:.45s; }
+  .reactor.state-thinking .r-core      { stroke:var(--hud-orange); fill:rgba(255,107,43,.12); animation-duration:.5s; }
+  .reactor.state-thinking .reactor-glow{
+    background:radial-gradient(circle,#fff 0%,var(--hud-orange) 35%,rgba(255,107,43,.3) 70%,transparent 100%);
+    box-shadow:0 0 16px var(--hud-orange),0 0 36px rgba(255,107,43,.6); animation-duration:.5s;
+  }
+  /* ── State: speaking (pulzuje, modrá) ── */
+  .reactor.state-speaking .r-outer  { animation-duration:3.5s; }
+  .reactor.state-speaking .r-inner  { animation-duration:1.1s; }
+  .reactor.state-speaking .r-core   { animation-duration:.38s; }
+  .reactor.state-speaking .reactor-glow { width:24px; height:24px; animation-duration:.38s;
+    box-shadow:0 0 20px var(--hud-blue),0 0 45px rgba(0,212,255,.7),0 0 80px rgba(0,212,255,.25); }
+
+  /* ── State: listening (zelená) ── */
+  .reactor.state-listening .r-outer     { stroke:var(--hud-green); filter:drop-shadow(0 0 6px var(--hud-green)); animation-duration:2.2s; }
+  .reactor.state-listening .r-outer-dim { stroke:rgba(0,255,136,.18); }
+  .reactor.state-listening .r-core      { stroke:var(--hud-green); fill:rgba(0,255,136,.1); }
+  .reactor.state-listening .reactor-glow{
+    background:radial-gradient(circle,#fff 0%,var(--hud-green) 35%,rgba(0,255,136,.3) 70%,transparent 100%);
+    box-shadow:0 0 15px var(--hud-green),0 0 35px rgba(0,255,136,.5);
+  }
+
+  .reactor-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-align: center;
+  }
+
+  /* Stat bars */
+  .stat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .stat-header {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .stat-bar-track {
+    height: 3px;
+    background: rgba(0,212,255,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-bar-fill {
+    height: 100%;
+    background: var(--hud-blue);
+    box-shadow: 0 0 6px var(--hud-blue);
+    transition: width 1s ease;
+    animation: barFlicker 4s ease-in-out infinite;
+  }
+
+  .stat-bar-fill.orange { background: var(--hud-orange); box-shadow: 0 0 6px var(--hud-orange); }
+  .stat-bar-fill.green  { background: var(--hud-green);  box-shadow: 0 0 6px var(--hud-green);  }
+
+  @keyframes barFlicker {
+    0%,100% { opacity: 1; }
+    92% { opacity: 1; }
+    94% { opacity: 0.6; }
+    96% { opacity: 1; }
+  }
+
+  /* Clock */
+  .hud-clock {
+    font-family: 'Orbitron', monospace;
+    font-size: 24px;
+    color: var(--hud-blue);
+    text-shadow: 0 0 12px var(--hud-blue-glow);
+    text-align: center;
+    letter-spacing: 3px;
+    padding: 6px 0;
+  }
+
+  .hud-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  /* Log panel */
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    overflow: hidden;
+  }
+
+  .log-entry {
+    display: flex;
+    gap: 6px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  .log-entry .log-tag {
+    color: var(--hud-orange);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .log-entry.new { color: var(--text-primary); }
+
+  /* Center chat */
+  .chat-area {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hud-border) transparent;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: msgIn 0.3s ease;
+  }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-items: flex-end; }
+  .message.jarvis { align-items: flex-start; }
+
+  .msg-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  .message.user .msg-label { color: rgba(255,107,43,0.6); }
+
+  .msg-bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.6;
+    position: relative;
+  }
+
+  .message.jarvis .msg-bubble {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid var(--hud-border);
+    color: var(--text-primary);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    border-left: 2px solid var(--hud-blue);
+  }
+
+  .message.user .msg-bubble {
+    background: rgba(255,107,43,0.08);
+    border: 1px solid rgba(255,107,43,0.3);
+    color: var(--text-primary);
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+    border-right: 2px solid var(--hud-orange);
+  }
+
+  /* ── Markdown uvnitř JARVIS bublin ───────────────────────────────────────── */
+  .message.jarvis .msg-bubble p { margin: 0 0 8px; }
+  .message.jarvis .msg-bubble p:last-child { margin-bottom: 0; }
+  .message.jarvis .msg-bubble h1,
+  .message.jarvis .msg-bubble h2,
+  .message.jarvis .msg-bubble h3 {
+    font-family: 'Orbitron', monospace;
+    color: var(--hud-blue);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin: 12px 0 6px;
+    text-transform: uppercase;
+  }
+  .message.jarvis .msg-bubble code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 1px 5px;
+    color: var(--hud-blue);
+  }
+  .message.jarvis .msg-bubble pre {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--hud-border);
+    border-left: 2px solid var(--hud-blue);
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+    border-radius: 0;
+  }
+  .message.jarvis .msg-bubble pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    color: #e8f4ff;
+  }
+  .message.jarvis .msg-bubble ul,
+  .message.jarvis .msg-bubble ol { padding-left: 20px; margin: 6px 0; }
+  .message.jarvis .msg-bubble li { margin: 3px 0; }
+  .message.jarvis .msg-bubble strong { color: var(--hud-blue); font-weight: 600; }
+  .message.jarvis .msg-bubble em    { color: rgba(232,244,255,0.75); font-style: italic; }
+  .message.jarvis .msg-bubble a     { color: var(--hud-blue); text-decoration: none; border-bottom: 1px solid rgba(0,212,255,0.3); }
+  .message.jarvis .msg-bubble blockquote {
+    border-left: 2px solid var(--hud-orange);
+    padding-left: 10px;
+    margin: 6px 0;
+    color: rgba(232,244,255,0.65);
+    font-style: italic;
+  }
+  .message.jarvis .msg-bubble hr { border: none; border-top: 1px solid var(--hud-border); margin: 10px 0; }
+  .message.jarvis .msg-bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+  .message.jarvis .msg-bubble th { border-bottom: 1px solid var(--hud-blue); padding: 4px 8px; color: var(--hud-blue); text-align: left; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; }
+  .message.jarvis .msg-bubble td { border-bottom: 1px solid rgba(0,212,255,0.1); padding: 4px 8px; }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-left: 2px solid var(--hud-blue);
+    background: rgba(0,212,255,0.05);
+  }
+
+  .typing-indicator.visible { display: flex; }
+
+  .typing-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--hud-blue);
+    animation: typingBounce 1.2s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%,80%,100% { transform: translateY(0); opacity: 0.3; }
+    40% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  .typing-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  /* Bottom input bar */
+  .input-bar {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--hud-border);
+  }
+
+  .input-prefix {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--hud-blue);
+    letter-spacing: 2px;
+    white-space: nowrap;
+    text-shadow: 0 0 8px var(--hud-blue-glow);
+  }
+
+  .input-field {
+    flex: 1;
+    background: rgba(0,212,255,0.04);
+    border: 1px solid var(--hud-border);
+    border-bottom: 2px solid var(--hud-blue);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+  }
+
+  .input-field::placeholder {
+    color: rgba(0,212,255,0.25);
+    font-weight: 300;
+  }
+
+  .input-field:focus {
+    border-color: var(--hud-blue);
+    box-shadow: 0 0 12px var(--hud-blue-dim), inset 0 0 8px rgba(0,212,255,0.03);
+  }
+
+  .send-btn {
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--hud-blue);
+    color: var(--hud-blue);
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    text-shadow: 0 0 8px var(--hud-blue-glow);
+  }
+
+  .send-btn:hover {
+    background: rgba(0,212,255,0.2);
+    box-shadow: 0 0 16px var(--hud-blue-dim);
+  }
+
+  .send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* Scan line effect */
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: rgba(0,212,255,0.08);
+    animation: scanline 8s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  @keyframes scanline {
+    from { top: 0; }
+    to   { top: 100vh; }
+  }
+
+  /* Noise overlay */
+  .noise {
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  /* Window controls (Electron frameless) */
+  .win-controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    -webkit-app-region: no-drag;
+  }
+  .win-btn {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .win-btn:hover { opacity: 1; }
+  .win-btn.close    { background: #ff5f57; }
+  .win-btn.minimize { background: #febc2e; }
+  .win-btn.maximize { background: #28c840; }
+
+  /* Make top bar draggable, but keep interactive elements clickable */
+  .top-bar { -webkit-app-region: drag; }
+  .top-bar button, .top-bar input, .top-bar select,
+  .status-row button, .win-controls, .win-btn, .hist-btn, .settings-btn,
+  .voice-status, #lang-flag, #lang-label { -webkit-app-region: no-drag; }
+  /* Settings overlay must always be no-drag */
+  .hist-panel, .hist-panel * { -webkit-app-region: no-drag; }
+  .settings-nav-item, .settings-close-btn { -webkit-app-region: no-drag; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--hud-border); border-radius: 2px; }
+
+  /* Small screen tweaks */
+  @media (max-width: 800px) {
+    .panel-left, .panel-right { display: none; }
+    .hud-layout { grid-template-columns: 1fr; }
+    .chat-area { grid-column: 1; }
+  }
+
+  .vr-line {
+    width: 1px;
+    background: var(--hud-border);
+    margin: 0 2px;
+    align-self: stretch;
+  }
+
+  /* Animated hex badge */
+  .hex-stat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+  }
+  .hex-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    color: var(--hud-blue);
+    text-shadow: 0 0 10px var(--hud-blue-glow);
+  }
+  .hex-unit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* ── Memory panel ─────────────────────────────────────────── */
+  .memory-section { margin-bottom: 8px; }
+  .memory-section-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; letter-spacing: 2px;
+    color: var(--hud-orange); margin-bottom: 4px;
+  }
+  .memory-item {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--text-dim);
+    line-height: 1.6; display: flex;
+    justify-content: space-between; gap: 4px;
+  }
+  .memory-item span { color: var(--text-primary); flex: 1; }
+  .memory-task-done span { text-decoration: line-through; opacity: 0.4; }
+  .memory-complete-btn {
+    background: none; border: 1px solid var(--hud-border);
+    color: var(--text-dim); font-size: 8px; padding: 1px 4px;
+    cursor: pointer; flex-shrink: 0;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .memory-complete-btn:hover { color: var(--hud-green); border-color: var(--hud-green); }
+  .memory-empty { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--hud-border); }
+
+  /* ── Language selector ───────────────────────────────────── */
+  .lang-select-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lang-active {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 6px 8px;
+    border: 1px solid var(--hud-border);
+    background: rgba(0,212,255,0.04);
+    transition: background 0.2s;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  }
+  .lang-active:hover { background: rgba(0,212,255,0.1); }
+
+  .lang-flag-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--hud-blue);
+    letter-spacing: 1px;
+  }
+  .lang-flag { font-size: 16px; line-height: 1; }
+  .lang-chevron {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    transition: transform 0.2s;
+  }
+  .lang-chevron.open { transform: rotate(180deg); }
+
+  .lang-dropdown {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 180px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hud-border) transparent;
+  }
+  .lang-dropdown.open { display: flex; }
+
+  .lang-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .lang-option:hover {
+    color: var(--hud-blue);
+    background: rgba(0,212,255,0.06);
+    border-left-color: var(--hud-blue);
+  }
+  .lang-option.selected {
+    color: var(--hud-blue);
+    border-left-color: var(--hud-orange);
+    background: rgba(255,107,43,0.06);
+  }
+  .lang-tts-badge {
+    margin-left: auto;
+    font-size: 8px;
+    color: var(--hud-green);
+    opacity: 0.7;
+    letter-spacing: 1px;
+  }
+
+  .lang-voice-info {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    padding: 4px 0 0;
+    opacity: 0.7;
+  }
+
+  .voice-diag-btn {
+    margin-top: 6px;
+    width: 100%;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid var(--hud-border);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .voice-diag-btn:hover { background: rgba(0,212,255,0.12); color: var(--hud-blue); }
+  .log-toggle-btn {
+    position: absolute;
+    top: -1px; right: 8px;
+    background: var(--hud-dark);
+    border: none;
+    color: var(--hud-blue);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 0 6px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+  }
+  .log-toggle-btn:hover { color: var(--hud-orange); }
+  .log-toggle-btn.open { transform: scaleY(-1); display: inline-block; }
+
+  /* ── Voice button ─────────────────────────────────────────── */
+  .mic-btn {
+    background: rgba(0,212,255,0.06);
+    border: 1px solid var(--hud-border);
+    color: var(--hud-blue);
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .mic-btn:hover { background: rgba(0,212,255,0.15); }
+  .mic-btn.listening {
+    background: rgba(255,107,43,0.15);
+    border-color: var(--hud-orange);
+    color: var(--hud-orange);
+    animation: micPulse 1s ease-in-out infinite;
+  }
+  .mic-btn.speaking {
+    background: rgba(0,255,136,0.1);
+    border-color: var(--hud-green);
+    color: var(--hud-green);
+    animation: micPulse 0.6s ease-in-out infinite;
+  }
+  .mic-btn svg { width: 18px; height: 18px; }
+  @keyframes micPulse {
+    0%,100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.8; }
+  }
+
+  /* Voice waveform indicator in status bar */
+  .voice-status {
+    display: none;
+    align-items: center;
+    gap: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+  }
+  .voice-status.visible { display: flex; }
+  .voice-status.listening { color: var(--hud-orange); }
+  .voice-status.speaking  { color: var(--hud-green); }
+  .wave-bar {
+    width: 2px;
+    background: currentColor;
+    border-radius: 1px;
+    animation: wave 0.8s ease-in-out infinite;
+  }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 10px; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 14px; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 8px;  }
+  .wave-bar:nth-child(5) { animation-delay: 0.15s; height: 12px; }
+  @keyframes wave {
+    0%,100% { transform: scaleY(0.4); }
+    50%      { transform: scaleY(1); }
+  }
+
+  /* ── Settings button (gear) ──────────────────────────────────── */
+  .settings-btn {
+    background: none;
+    border: 1px solid rgba(0,212,255,0.25);
+    color: var(--hud-blue);
+    font-size: 14px;
+    line-height: 1;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.2s, border-color 0.2s;
+    padding: 0;
+  }
+  .settings-btn:hover { background: rgba(0,212,255,0.1); border-color: var(--hud-blue); }
+  .settings-btn.active { background: rgba(0,212,255,0.15); border-color: var(--hud-blue); }
+  .settings-btn.active .gear-icon { animation: spinGear 4s linear infinite; display: inline-block; }
+  @keyframes spinGear { to { transform: rotate(360deg); } }
+
+  /* ── Left-panel conversation history ────────────────────────── */
+  #panel-conv-history { flex: 1; overflow-y: auto; }
+  #panel-conv-history .hist-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 8px; border-radius: 2px; cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    gap: 6px;
+  }
+  #panel-conv-history .hist-item:hover { background: rgba(0,212,255,0.07); border-color: rgba(0,212,255,0.15); }
+  #panel-conv-history .hist-item.active { background: rgba(0,212,255,0.12); border-color: rgba(0,212,255,0.3); }
+  #panel-conv-history .hist-item-text { flex: 1; min-width: 0; }
+  #panel-conv-history .hist-item-title {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    color: var(--hud-blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #panel-conv-history .hist-item-date { font-size: 8px; color: var(--text-dim); margin-top: 2px; }
+  #panel-conv-history .hist-del-btn {
+    background: none; border: none; color: rgba(255,107,43,0.5);
+    font-size: 9px; cursor: pointer; padding: 1px 3px; flex-shrink: 0;
+    transition: color 0.2s;
+  }
+  #panel-conv-history .hist-del-btn:hover { color: var(--hud-orange); }
+  #panel-conv-history .hist-empty { font-size: 9px; color: var(--text-dim); text-align: center; padding: 16px 0; }
+  #panel-conv-history .hist-new-btn {
+    width: 100%; background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2);
+    color: var(--hud-blue); font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1px; padding: 5px; cursor: pointer;
+    border-radius: 2px; transition: background 0.2s; margin-bottom: 8px;
+  }
+  #panel-conv-history .hist-new-btn:hover { background: rgba(0,212,255,0.13); }
+
+  .hist-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%; height: 100%;
+    background: rgba(2,8,16,0.97);
+    display: none;
+    flex-direction: column;
+    z-index: 9999;
+    overflow: hidden;
+  }
+  .hist-panel.open {
+    display: flex;
+    animation: settingsFadeIn 0.18s ease;
+  }
+  @keyframes settingsFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Settings top bar */
+  .hist-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(0,212,255,0.15);
+    flex-shrink: 0;
+  }
+  .hist-panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--hud-blue);
+    text-shadow: 0 0 12px rgba(0,212,255,0.4);
+  }
+  .settings-close-btn {
+    background: none; border: 1px solid rgba(0,212,255,0.25);
+    color: var(--hud-blue); font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 1px; padding: 4px 10px;
+    cursor: pointer; border-radius: 2px; transition: background 0.2s;
+  }
+  .settings-close-btn:hover { background: rgba(0,212,255,0.1); }
+
+  /* Settings body: left nav + right content */
+  .settings-body {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .settings-nav {
+    width: 200px; flex-shrink: 0;
+    border-right: 1px solid rgba(0,212,255,0.12);
+    display: flex; flex-direction: column;
+    padding: 16px 0;
+    gap: 2px;
+  }
+  .settings-nav-section {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; letter-spacing: 2px;
+    color: var(--text-dim); padding: 8px 18px 4px;
+    text-transform: uppercase;
+  }
+  .settings-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 18px;
+    background: none; border: none; border-left: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    cursor: pointer; text-align: left;
+    transition: all 0.15s; width: 100%;
+  }
+  .settings-nav-item:hover { color: var(--hud-blue); background: rgba(0,212,255,0.05); border-left-color: rgba(0,212,255,0.3); }
+  .settings-nav-item.active { color: var(--hud-blue); background: rgba(0,212,255,0.08); border-left-color: var(--hud-blue); }
+  .settings-nav-icon { font-size: 13px; width: 18px; text-align: center; }
+
+  /* Settings content area */
+  .settings-content {
+    flex: 1; overflow-y: auto; padding: 24px 32px;
+    scrollbar-width: thin; scrollbar-color: rgba(0,212,255,0.2) transparent;
+  }
+  .settings-content::-webkit-scrollbar { width: 4px; }
+  .settings-content::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.2); border-radius: 2px; }
+  .settings-tab { display: none; }
+  .settings-tab.active { display: block; }
+  .settings-tab-title {
+    font-family: 'Orbitron', monospace; font-size: 11px;
+    letter-spacing: 3px; color: var(--hud-blue);
+    margin-bottom: 20px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0,212,255,0.15);
+    text-shadow: 0 0 10px rgba(0,212,255,0.3);
+  }
+
+  /* ── Profile form ───────────────────────────────────────────── */
+  .profile-form { display: flex; flex-direction: column; gap: 18px; max-width: 420px; }
+  .profile-row { display: flex; gap: 14px; }
+  .profile-field { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .profile-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase;
+  }
+  .profile-input {
+    background: rgba(0,212,255,0.04);
+    border: 1px solid rgba(0,212,255,0.2);
+    color: var(--text-main);
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    padding: 7px 10px; border-radius: 2px; outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  }
+  .profile-input:focus { border-color: var(--hud-blue); background: rgba(0,212,255,0.07); }
+  .profile-input[readonly] { opacity: 0.45; cursor: default; }
+  .profile-save-btn {
+    align-self: flex-start;
+    background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.35);
+    color: var(--hud-blue); font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 2px; padding: 8px 20px;
+    cursor: pointer; border-radius: 2px; transition: background 0.2s, border-color 0.2s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+  .profile-save-btn:hover { background: rgba(0,212,255,0.2); border-color: var(--hud-blue); }
+  .profile-save-btn:disabled { opacity: 0.4; cursor: default; }
+  .profile-status {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    letter-spacing: 1px; height: 14px; transition: opacity 0.3s;
+  }
+  .profile-status.ok  { color: var(--hud-green); }
+  .profile-status.err { color: #ff5555; }
+  .profile-divider {
+    border: none; border-top: 1px solid rgba(0,212,255,0.1); margin: 4px 0;
+  }
+  .profile-section-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    letter-spacing: 2px; color: rgba(0,212,255,0.35); margin-bottom: -8px;
+  }
+
+  /* ── AI Model settings ───────────────────────────────────────── */
+  .ai-section { display: flex; flex-direction: column; gap: 22px; max-width: 480px; }
+  .ai-field { display: flex; flex-direction: column; gap: 8px; }
+  .ai-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    letter-spacing: 2px; color: var(--text-dim);
+  }
+  .ai-label span {
+    float: right; font-size: 8px; color: rgba(0,212,255,0.4); letter-spacing: 0;
+  }
+  .ai-cards { display: flex; flex-direction: column; gap: 6px; }
+  .ai-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 14px; border: 1px solid rgba(0,212,255,0.12);
+    background: rgba(0,212,255,0.02); cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+  .ai-card:hover { background: rgba(0,212,255,0.06); border-color: rgba(0,212,255,0.25); }
+  .ai-card.selected { border-color: var(--hud-blue); background: rgba(0,212,255,0.09); }
+  .ai-card-radio {
+    width: 10px; height: 10px; border: 1px solid rgba(0,212,255,0.4);
+    border-radius: 50%; margin-top: 2px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ai-card.selected .ai-card-radio::after {
+    content: ''; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--hud-blue);
+  }
+  .ai-card-info { flex: 1; }
+  .ai-card-name {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--text-main); letter-spacing: 1px; margin-bottom: 3px;
+  }
+  .ai-card.selected .ai-card-name { color: var(--hud-blue); }
+  .ai-card-desc { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--text-dim); }
+  .ai-card-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 7px;
+    padding: 1px 5px; border: 1px solid; border-radius: 1px; white-space: nowrap; margin-top: 1px;
+  }
+  .badge-fast  { color: var(--hud-green);  border-color: rgba(0,255,136,0.3); }
+  .badge-smart { color: var(--hud-blue);   border-color: rgba(0,212,255,0.3); }
+  .badge-power { color: var(--hud-orange); border-color: rgba(255,107,43,0.3); }
+
+
+  .ai-prompt-area {
+    background: rgba(0,212,255,0.03); border: 1px solid rgba(0,212,255,0.15);
+    color: var(--text-main); font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    padding: 10px; resize: vertical; min-height: 90px; outline: none;
+    border-radius: 2px; line-height: 1.6; transition: border-color 0.2s;
+    width: 100%; box-sizing: border-box;
+  }
+  .ai-prompt-area:focus { border-color: rgba(0,212,255,0.4); }
+  .ai-hint { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--text-dim); margin-top: -4px; }
+  .ai-divider { border: none; border-top: 1px solid rgba(0,212,255,0.08); }
+
+  /* ── Voice settings ─────────────────────────────────────────── */
+  .voice-section { display: flex; flex-direction: column; gap: 20px; max-width: 460px; }
+  .voice-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border: 1px solid rgba(0,212,255,0.12);
+    background: rgba(0,212,255,0.02);
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  }
+  .voice-toggle-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 10px;
+    color: var(--text-main); letter-spacing: 1px;
+  }
+  .voice-toggle-sub { font-size: 8px; color: var(--text-dim); margin-top: 2px; }
+  .hud-toggle {
+    position: relative; width: 38px; height: 20px; cursor: pointer; flex-shrink: 0;
+  }
+  .hud-toggle input { opacity: 0; width: 0; height: 0; }
+  .hud-toggle-slider {
+    position: absolute; inset: 0;
+    background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
+    transition: background 0.2s, border-color 0.2s; border-radius: 1px;
+  }
+  .hud-toggle-slider::after {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; left: 2px; top: 2px;
+    background: rgba(0,212,255,0.4); transition: transform 0.2s, background 0.2s;
+  }
+  .hud-toggle input:checked + .hud-toggle-slider {
+    background: rgba(0,212,255,0.15); border-color: var(--hud-blue);
+  }
+  .hud-toggle input:checked + .hud-toggle-slider::after {
+    transform: translateX(18px); background: var(--hud-blue);
+    box-shadow: 0 0 6px rgba(0,212,255,0.6);
+  }
+
+  .voice-slider-field { display: flex; flex-direction: column; gap: 8px; }
+  .voice-slider-label {
+    display: flex; justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    letter-spacing: 2px; color: var(--text-dim);
+  }
+  .voice-slider-label span { color: var(--hud-blue); }
+  .voice-select {
+    background: rgba(0,212,255,0.04); border: 1px solid rgba(0,212,255,0.2);
+    color: var(--text-main); font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; padding: 7px 10px; outline: none; width: 100%;
+    border-radius: 2px; cursor: pointer;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  }
+  .voice-select:focus { border-color: rgba(0,212,255,0.4); }
+  .voice-test-btn {
+    background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2);
+    color: var(--hud-blue); font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1px; padding: 6px 14px;
+    cursor: pointer; border-radius: 2px; transition: background 0.2s;
+  }
+  .voice-test-btn:hover { background: rgba(0,212,255,0.15); }
+
+  /* Display cards */
+  .display-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border: 1px solid rgba(0,212,255,0.15);
+    background: rgba(0,212,255,0.03);
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .display-card.current { border-color: rgba(0,212,255,0.4); background: rgba(0,212,255,0.07); }
+  .display-card-info { display: flex; flex-direction: column; gap: 4px; }
+  .display-card-label {
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--hud-blue); letter-spacing: 1px;
+  }
+  .display-card-res {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    color: var(--text-dim); letter-spacing: 1px;
+  }
+  .display-card-badge {
+    font-family: 'Share Tech Mono', monospace; font-size: 8px;
+    color: var(--hud-green); letter-spacing: 1px; margin-top: 2px;
+  }
+  .display-move-btn {
+    background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.3);
+    color: var(--hud-blue); font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1px; padding: 6px 14px;
+    cursor: pointer; border-radius: 2px; transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .display-move-btn:hover { background: rgba(0,212,255,0.18); border-color: var(--hud-blue); }
+  .display-move-btn:disabled { opacity: 0.35; cursor: default; }
+  .display-move-btn.current-btn { border-color: rgba(0,212,255,0.2); color: var(--text-dim); }
+
+  /* Display map */
+  .display-map-wrap {
+    position: relative;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,212,255,0.15);
+    overflow: hidden;
+    margin-bottom: 20px;
+    user-select: none;
+  }
+  .display-map-screen {
+    position: absolute;
+    border: 1px solid rgba(0,212,255,0.3);
+    background: rgba(0,212,255,0.04);
+    box-sizing: border-box;
+    display: flex; align-items: flex-start; justify-content: flex-start;
+    padding: 4px 6px;
+  }
+  .display-map-screen-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px; color: rgba(0,212,255,0.4); letter-spacing: 1px;
+    pointer-events: none;
+  }
+  .display-map-jarvis {
+    position: absolute;
+    background: rgba(0,212,255,0.15);
+    border: 1px solid var(--hud-blue);
+    box-shadow: 0 0 10px rgba(0,212,255,0.3);
+    cursor: grab;
+    display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box;
+    transition: box-shadow 0.15s;
+  }
+  .display-map-jarvis:active { cursor: grabbing; box-shadow: 0 0 20px rgba(0,212,255,0.6); }
+  .display-map-jarvis-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px; color: var(--hud-blue); letter-spacing: 1px;
+    pointer-events: none;
+  }
+
+  /* Saving indicator (bottom of settings panel) */
+  .hist-saving {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: rgba(0,212,255,0.4);
+    text-align: center;
+    padding: 4px;
+    border-top: 1px solid rgba(0,212,255,0.1);
+    flex-shrink: 0;
+    letter-spacing: 1px;
+    min-height: 20px;
+    transition: opacity 0.3s;
+  }
+
+  /* Left-panel history items */
+  .hist-item {
+    display: flex;
+    align-items: center;
+    padding: 7px 8px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,212,255,0.05);
+    transition: background 0.15s;
+    gap: 8px;
+  }
+  .hist-item:hover { background: rgba(0,212,255,0.07); }
+  .hist-item.active { background: rgba(0,212,255,0.12); border-left: 2px solid var(--hud-blue); padding-left: 6px; }
+  .hist-item-text { flex: 1; min-width: 0; }
+  .hist-item-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--hud-blue);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 1px;
+  }
+  .hist-item-date { font-family: 'Share Tech Mono', monospace; font-size: 8px; color: var(--text-dim); }
+  .hist-del-btn {
+    background: none; border: none; color: rgba(255,80,80,0.4);
+    cursor: pointer; font-size: 11px; padding: 2px 3px; border-radius: 2px;
+    flex-shrink: 0; transition: color 0.15s; line-height: 1;
+  }
+  .hist-del-btn:hover { color: rgba(255,80,80,0.9); }
+  .hist-empty {
+    font-family: 'Share Tech Mono', monospace; font-size: 9px;
+    color: var(--text-dim); text-align: center; padding: 18px 8px; letter-spacing: 1px;
+  }
+  .hist-new-btn {
+    width: 100%; background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2);
+    color: var(--hud-blue); font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1px; padding: 5px; cursor: pointer;
+    border-radius: 2px; transition: background 0.2s; margin-bottom: 6px;
+  }
+  .hist-new-btn:hover { background: rgba(0,212,255,0.13); }
+  .hist-list { overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: rgba(0,212,255,0.2) transparent; }
+  .hist-list::-webkit-scrollbar { width: 3px; }
+  .hist-list::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+<div class="noise"></div>
+
+<div class="hud-layout">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="title-block">
+      <span class="title-main">J.A.R.V.I.S.</span>
+      <span class="title-sub" id="title-sub">Just A Rather Very Intelligent System · v4.1.7</span>
+    </div>
+    <div class="status-row">
+      <span><span class="status-dot"></span><span id="status-online">ONLINE</span></span>
+      <span id="uptime-display">UPTIME: 00:00:00</span>
+      <span id="status-neural">NEURAL LINK: ACTIVE</span>
+      <div class="voice-status" id="voice-status">
+        <div class="wave-bar" style="height:6px"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <span id="voice-status-text" style="margin-left:4px"></span>
+      </div>
+      <span id="clock-top"></span>
+      <button class="settings-btn" id="hist-btn" onclick="toggleHistoryPanel()" title="Settings">
+        <span class="gear-icon">⚙</span>
+      </button>
+      <div class="win-controls">
+        <button class="win-btn minimize" onclick="if(window.electronAPI) window.electronAPI.minimize()"></button>
+        <button class="win-btn maximize" onclick="if(window.electronAPI) window.electronAPI.maximize()"></button>
+        <button class="win-btn close"    onclick="if(window.electronAPI) window.electronAPI.hide(); else window.close()"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Left panel -->
+  <div class="panel-left">
+
+    <div class="hud-panel" id="panel-reactor" data-label="ARC REACTOR">
+      <div class="reactor-wrap">
+        <div class="reactor" id="reactor">
+          <canvas id="reactor-canvas" width="130" height="130"></canvas>
+          <svg viewBox="0 0 130 130">
+            <!-- Static dim rings -->
+            <circle class="r-bg" cx="65" cy="65" r="60"/>
+            <circle class="r-bg" cx="65" cy="65" r="46"/>
+            <circle class="r-bg" cx="65" cy="65" r="32"/>
+            <!-- Outer ring (r=56) CW -->
+            <circle class="r-ring r-outer     r-cw"  cx="65" cy="65" r="56"/>
+            <circle class="r-ring r-outer-dim r-cw"  cx="65" cy="65" r="56"/>
+            <!-- Mid ring (r=42) CCW -->
+            <circle class="r-ring r-mid       r-ccw" cx="65" cy="65" r="42"/>
+            <circle class="r-ring r-mid-dim   r-ccw" cx="65" cy="65" r="42"/>
+            <!-- Inner ring (r=28) CW -->
+            <circle class="r-ring r-inner     r-cw"  cx="65" cy="65" r="28"/>
+            <!-- Hexagon -->
+            <polygon class="r-hex" points="65,48 79.5,56.5 79.5,73.5 65,82 50.5,73.5 50.5,56.5"/>
+            <!-- Star diagonals -->
+            <line class="r-tri" x1="65"  y1="48"   x2="65"  y2="82"/>
+            <line class="r-tri" x1="50.5" y1="56.5" x2="79.5" y2="73.5"/>
+            <line class="r-tri" x1="79.5" y1="56.5" x2="50.5" y2="73.5"/>
+            <!-- Core -->
+            <circle class="r-core" cx="65" cy="65" r="12"/>
+          </svg>
+          <div class="reactor-glow" id="reactor-glow"></div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <div class="hud-panel" id="panel-temporal" data-label="TEMPORAL">
+      <div class="hud-clock" id="clock-main">--:--:--</div>
+      <div class="hud-date" id="date-main">STARDATE --</div>
+      <div class="hex-stat" style="margin-top:10px">
+        <div>
+          <div class="hex-unit" id="unit-requests">REQUESTS</div>
+          <div class="hex-val" id="req-count">0</div>
+        </div>
+        <div style="text-align:right">
+          <div class="hex-unit" id="unit-tokens">TOKENS EST</div>
+          <div class="hex-val" id="tok-count">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-panel" data-label="CONV. HISTORY" style="flex:1;overflow:hidden;display:flex;flex-direction:column" id="panel-conv-history">
+      <button class="hist-new-btn" onclick="newConversation()">+ NEW CONVERSATION</button>
+      <div class="hist-list" id="hist-list">
+        <div class="hist-empty">NO RECORDS FOUND</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Center chat -->
+  <div class="chat-area">
+    <div class="chat-messages" id="chat-messages">
+      <div class="message jarvis">
+        <div class="msg-label">J.A.R.V.I.S.</div>
+        <div class="msg-bubble">
+          Good day. All systems are nominal. I am fully operational and ready to assist you, sir. What can I do for you today?
+        </div>
+      </div>
+    </div>
+    <div class="typing-indicator" id="typing">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-label" id="typing-label">JARVIS PROCESSING</div>
+    </div>
+    <div class="typing-indicator" id="searching" style="border-left-color:var(--hud-orange)">
+      <div class="typing-dot" style="background:var(--hud-orange)"></div>
+      <div class="typing-dot" style="background:var(--hud-orange)"></div>
+      <div class="typing-dot" style="background:var(--hud-orange)"></div>
+      <div class="typing-label" style="color:var(--hud-orange)">SCANNING THE WEB</div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="panel-right">
+
+
+
+    <div class="hud-panel" id="panel-log" data-label="ACTIVITY LOG" style="overflow:hidden">
+      <button class="log-toggle-btn" id="log-toggle-btn" onclick="toggleLog()" title="Toggle log">▼</button>
+      <div class="log-list" id="log-list" style="display:none">
+        <div class="log-entry"><span class="log-tag">[BOOT]</span><span>Systems initialised</span></div>
+        <div class="log-entry"><span class="log-tag">[NET]</span><span>Uplink established</span></div>
+        <div class="log-entry"><span class="log-tag">[AI]</span><span>Neural core loaded</span></div>
+        <div class="log-entry"><span class="log-tag">[SEC]</span><span>Perimeter scan OK</span></div>
+        <div class="log-entry new"><span class="log-tag">[RDY]</span><span>Awaiting input</span></div>
+      </div>
+    </div>
+
+    <div class="hud-panel" id="panel-location" data-label="LOCATION TRACK">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.8">
+        <div>LAT <span style="color:var(--hud-blue)">49.2105° N</span></div>
+        <div>LON <span style="color:var(--hud-blue)">16.5764° E</span></div>
+        <div>ALT <span style="color:var(--hud-blue)">227m</span></div>
+        <div style="margin-top:6px"><span id="location-lbl">LOCATION</span> <span style="color:var(--hud-orange)">BRNO, CZ</span></div>
+        <div>STATUS <span id="location-status-lbl" style="color:var(--hud-green)">TRACKING</span></div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <!-- Input bar -->
+  <div class="input-bar">
+    <span class="input-prefix" id="input-prefix">STARK://</span>
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Hold to speak">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="2" width="6" height="12" rx="3"/>
+        <path d="M5 10a7 7 0 0 0 14 0"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="9" y1="22" x2="15" y2="22"/>
+      </svg>
+    </button>
+    <input class="input-field" id="user-input" type="text" placeholder="What do you need, sir?" autocomplete="off" />
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">TRANSMIT</button>
+  </div>
+
+</div>
+
+<!-- Settings Overlay — outside hud-layout to avoid stacking context issues -->
+<div class="hist-panel" id="hist-panel">
+  <!-- Top bar -->
+  <div class="hist-panel-header">
+    <span class="hist-panel-title">⚙ J.A.R.V.I.S. · SETTINGS</span>
+    <button class="settings-close-btn" onclick="toggleHistoryPanel()">✕ CLOSE</button>
+  </div>
+
+  <!-- Body: nav + content -->
+  <div class="settings-body">
+
+    <!-- Left navigation -->
+    <div class="settings-nav">
+      <div class="settings-nav-section">SYSTEM</div>
+      <button class="settings-nav-item active" id="stab-btn-memory" onclick="showSettingsTab('memory')">
+        <span class="settings-nav-icon">🧠</span> MEMORY CORE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-profile" onclick="showSettingsTab('profile')">
+        <span class="settings-nav-icon">👤</span> PROFILE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-ai" onclick="showSettingsTab('ai')">
+        <span class="settings-nav-icon">🤖</span> AI MODEL
+      </button>
+      <button class="settings-nav-item" id="stab-btn-lang" onclick="showSettingsTab('lang')">
+        <span class="settings-nav-icon">🌐</span> LANGUAGE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-voice" onclick="showSettingsTab('voice')">
+        <span class="settings-nav-icon">🎙️</span> VOICE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-display" onclick="showSettingsTab('display')">
+        <span class="settings-nav-icon">🖥️</span> DISPLAY
+      </button>
+    </div>
+
+    <!-- Right content -->
+    <div class="settings-content">
+
+      <!-- Memory tab -->
+      <div class="settings-tab active" id="stab-memory">
+        <div class="settings-tab-title">MEMORY CORE</div>
+        <div id="memory-display">
+          <div class="memory-empty">No memories yet.</div>
+        </div>
+      </div>
+
+      <!-- Profile tab -->
+      <div class="settings-tab" id="stab-profile">
+        <div class="settings-tab-title">PROFILE</div>
+        <div class="profile-form" id="profile-form">
+
+          <div class="profile-section-label">IDENTITY</div>
+          <div class="profile-row">
+            <div class="profile-field">
+              <label class="profile-label">First name</label>
+              <input class="profile-input" id="pf-firstname" type="text" placeholder="Tony" autocomplete="off"/>
+            </div>
+            <div class="profile-field">
+              <label class="profile-label">Surname</label>
+              <input class="profile-input" id="pf-surname" type="text" placeholder="Stark" autocomplete="off"/>
+            </div>
+          </div>
+
+          <div class="profile-field">
+            <label class="profile-label">Email</label>
+            <input class="profile-input" id="pf-email" type="text" readonly/>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">ABOUT YOU</div>
+
+          <div class="profile-row">
+            <div class="profile-field">
+              <label class="profile-label">Age</label>
+              <input class="profile-input" id="pf-age" type="text" placeholder="35" autocomplete="off"/>
+            </div>
+            <div class="profile-field">
+              <label class="profile-label">Location</label>
+              <input class="profile-input" id="pf-location" type="text" placeholder="Brno, CZ" autocomplete="off"/>
+            </div>
+          </div>
+
+          <div class="profile-field">
+            <label class="profile-label">Occupation</label>
+            <input class="profile-input" id="pf-occupation" type="text" placeholder="Engineer" autocomplete="off"/>
+          </div>
+
+          <div class="profile-field">
+            <label class="profile-label">Interests / Notes</label>
+            <input class="profile-input" id="pf-interests" type="text" placeholder="Technology, AI, chess..." autocomplete="off"/>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:16px;margin-top:4px">
+            <button class="profile-save-btn" id="profile-save-btn" onclick="saveProfile()">SAVE PROFILE</button>
+            <span class="profile-status" id="profile-status"></span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- AI Model tab -->
+      <div class="settings-tab" id="stab-ai">
+        <div class="settings-tab-title">AI MODEL</div>
+        <div class="ai-section">
+
+          <!-- Model -->
+          <div class="ai-field">
+            <div class="ai-label">MODEL</div>
+            <div class="ai-cards" id="ai-model-cards">
+              <div class="ai-card selected" onclick="selectAICard('model', 'claude-sonnet-4-20250514', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">Claude Sonnet 4</div>
+                  <div class="ai-card-desc">Balanced intelligence and speed — recommended for daily use</div>
+                </div>
+                <div class="ai-card-badge badge-smart">DEFAULT</div>
+              </div>
+              <div class="ai-card" onclick="selectAICard('model', 'claude-opus-4-5', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">Claude Opus 4.5</div>
+                  <div class="ai-card-desc">Maximum intelligence — complex reasoning, longer tasks</div>
+                </div>
+                <div class="ai-card-badge badge-power">POWERFUL</div>
+              </div>
+              <div class="ai-card" onclick="selectAICard('model', 'claude-haiku-4-5', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">Claude Haiku 4.5</div>
+                  <div class="ai-card-desc">Fastest responses — quick questions, light tasks</div>
+                </div>
+                <div class="ai-card-badge badge-fast">FASTEST</div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="ai-divider"/>
+
+          <!-- Personality -->
+          <div class="ai-field">
+            <div class="ai-label">PERSONALITY</div>
+            <div class="ai-cards" id="ai-persona-cards">
+              <div class="ai-card selected" onclick="selectAICard('persona', 'jarvis', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">JARVIS — Classic</div>
+                  <div class="ai-card-desc">Precise, calm, subtly witty. Tony Stark's AI butler</div>
+                </div>
+              </div>
+              <div class="ai-card" onclick="selectAICard('persona', 'casual', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">Casual</div>
+                  <div class="ai-card-desc">Friendly and relaxed — first name basis, conversational tone</div>
+                </div>
+              </div>
+              <div class="ai-card" onclick="selectAICard('persona', 'focused', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">Focused</div>
+                  <div class="ai-card-desc">Ultra-concise, no small talk — direct answers only</div>
+                </div>
+              </div>
+              <div class="ai-card" onclick="selectAICard('persona', 'humorous', this)">
+                <div class="ai-card-radio"></div>
+                <div class="ai-card-info">
+                  <div class="ai-card-name">Humorous</div>
+                  <div class="ai-card-desc">Playful and witty — sarcasm welcome, dry British humor</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="ai-divider"/>
+
+          <!-- Custom system prompt addition -->
+          <div class="ai-field">
+            <div class="ai-label">CUSTOM INSTRUCTIONS <span>optional — appended to system prompt</span></div>
+            <textarea class="ai-prompt-area" id="ai-custom-prompt"
+              placeholder="E.g. Always respond in bullet points. Never mention competitors. Prefer metric units."></textarea>
+            <div class="ai-hint">These instructions are added on top of the selected personality.</div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:16px">
+            <button class="profile-save-btn" onclick="saveAIConfig()">SAVE CONFIG</button>
+            <span class="profile-status" id="ai-status"></span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Language tab -->
+      <div class="settings-tab" id="stab-lang">
+        <div class="settings-tab-title">LANGUAGE MODULE</div>
+        <div class="lang-select-wrap" style="max-width:320px">
+          <div class="lang-active" id="lang-active" onclick="toggleLangDropdown()">
+            <div class="lang-flag-name">
+              <span class="lang-flag" id="lang-flag">🇬🇧</span>
+              <span id="lang-label">ENGLISH</span>
+            </div>
+            <span class="lang-chevron" id="lang-chevron">▼</span>
+          </div>
+          <div class="lang-dropdown" id="lang-dropdown"></div>
+          <div class="lang-voice-info" id="lang-voice-info">TTS: READY</div>
+          <button class="voice-diag-btn" onclick="diagVoices()">SCAN VOICES</button>
+        </div>
+      </div>
+
+      <!-- Voice tab -->
+      <div class="settings-tab" id="stab-voice">
+        <div class="settings-tab-title">VOICE</div>
+        <div class="voice-section">
+
+          <!-- TTS on/off -->
+          <div class="voice-toggle-row">
+            <div>
+              <div class="voice-toggle-label">TEXT-TO-SPEECH</div>
+              <div class="voice-toggle-sub">JARVIS reads responses aloud</div>
+            </div>
+            <label class="hud-toggle">
+              <input type="checkbox" id="voice-tts-enabled" checked onchange="saveVoiceConfig()"/>
+              <span class="hud-toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- STT on/off -->
+          <div class="voice-toggle-row">
+            <div>
+              <div class="voice-toggle-label">VOICE INPUT (STT)</div>
+              <div class="voice-toggle-sub">Microphone button active</div>
+            </div>
+            <label class="hud-toggle">
+              <input type="checkbox" id="voice-stt-enabled" checked onchange="saveVoiceConfig()"/>
+              <span class="hud-toggle-slider"></span>
+            </label>
+          </div>
+
+          <hr class="ai-divider"/>
+
+          <!-- Voice selector -->
+          <div class="voice-slider-field">
+            <div class="voice-slider-label">VOICE <span id="voice-sel-count"></span></div>
+            <select class="voice-select" id="voice-select" onchange="saveVoiceConfig()">
+              <option value="">— system default —</option>
+            </select>
+          </div>
+
+          <!-- Rate -->
+          <div class="voice-slider-field">
+            <div class="voice-slider-label">SPEED <span id="voice-rate-val">0.92×</span></div>
+            <input class="ai-slider" id="voice-rate" type="range"
+                   min="0.5" max="2.0" step="0.05" value="0.92"
+                   oninput="document.getElementById('voice-rate-val').textContent=parseFloat(this.value).toFixed(2)+'×'; saveVoiceConfig()"/>
+          </div>
+
+          <!-- Pitch -->
+          <div class="voice-slider-field">
+            <div class="voice-slider-label">PITCH <span id="voice-pitch-val">0.82</span></div>
+            <input class="ai-slider" id="voice-pitch" type="range"
+                   min="0.5" max="2.0" step="0.05" value="0.82"
+                   oninput="document.getElementById('voice-pitch-val').textContent=parseFloat(this.value).toFixed(2); saveVoiceConfig()"/>
+          </div>
+
+          <hr class="ai-divider"/>
+
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="voice-test-btn" onclick="testVoice()">▶ TEST VOICE</button>
+            <button class="voice-test-btn" onclick="diagVoices()">SCAN VOICES</button>
+            <span class="profile-status" id="voice-status-msg"></span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Display tab -->
+      <div class="settings-tab" id="stab-display">
+        <div class="settings-tab-title">DISPLAY · WINDOW PLACEMENT</div>
+        <div id="display-list" style="display:flex;flex-direction:column;gap:10px;max-width:480px">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px">
+            DETECTING DISPLAYS...
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="hist-saving" id="hist-saving"></div>
+</div>
+
+<script>
+  // ─── Memory ───────────────────────────────────────────────────────────────
+  let memoryCache = {};
+  let langInitialized = false;
+
+  function getUserLabel() {
+    const p = memoryCache.profile || {};
+    const name = p.firstname || p.name || p.surname || '';
+    return name ? name.toUpperCase() : 'STARK';
+  }
+
+  function updateUserLabels() {
+    const label = getUserLabel();
+    // Aktualizuj prefix v inputu
+    const prefix = document.getElementById('input-prefix');
+    if (prefix) prefix.textContent = label + '://';
+    // Aktualizuj všechny existující user message labely
+    document.querySelectorAll('.message.user .msg-label').forEach(el => {
+      el.textContent = label;
+    });
+  }
+
+  async function loadMemory() {
+    try {
+      const r = await fetch('/api/memory');
+      memoryCache = await r.json();
+      renderMemory();
+      updateUserLabels();
+      // Při prvním načtení nastav jazyk z profilu
+      if (!langInitialized) {
+        langInitialized = true;
+        const prefLang = (memoryCache.profile || {}).language;
+        if (prefLang && prefLang !== currentLang.code) {
+          const match = LANGUAGES.find(l => l.code === prefLang);
+          if (match) selectLanguage(match.code);
+        }
+      }
+    } catch(e) {}
+  }
+
+  async function completeTask(idx) {
+    await fetch('/api/memory', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({complete_task: idx})
+    });
+    loadMemory();
+  }
+
+  function renderMemory() {
+    const mem = memoryCache;
+    const el  = document.getElementById('memory-display');
+    if (!el) return;
+    let html = '';
+
+    // Profile
+    const profile = Object.entries(mem.profile || {});
+    if (profile.length) {
+      html += `<div class="memory-section">
+        <div class="memory-section-title">PROFILE</div>`;
+      profile.forEach(([k,v]) => {
+        html += `<div class="memory-item">${k}: <span>${v}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Preferences
+    const prefs = Object.entries(mem.preferences || {});
+    if (prefs.length) {
+      html += `<div class="memory-section">
+        <div class="memory-section-title">PREFERENCES</div>`;
+      prefs.forEach(([k,v]) => {
+        html += `<div class="memory-item">${k}: <span>${v}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Tasks
+    const tasks = (mem.tasks || []);
+    if (tasks.length) {
+      html += `<div class="memory-section">
+        <div class="memory-section-title">TASKS</div>`;
+      tasks.forEach((t, i) => {
+        const done = t.done ? 'memory-task-done' : '';
+        const btn  = !t.done
+          ? `<button class="memory-complete-btn" onclick="completeTask(${i})">✓</button>` : '';
+        html += `<div class="memory-item ${done}">`
+          + `<span>${t.text}${t.due ? ' · ' + t.due : ''}</span>${btn}</div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Facts
+    const facts = (mem.facts || []).slice(-8);
+    if (facts.length) {
+      html += `<div class="memory-section">
+        <div class="memory-section-title">KNOWN FACTS</div>`;
+      facts.forEach(f => {
+        html += `<div class="memory-item"><span>${f}</span></div>`;
+      });
+      html += `</div>`;
+    }
+
+    el.innerHTML = html || '<div class="memory-empty">No memories yet.</div>';
+  }
+
+  // Load memory on start and after each JARVIS reply
+  loadMemory();
+
+  // ─── Conversation History ─────────────────────────────────────────────────
+  let currentConvId  = null;
+  let historyPanelOpen = false;
+  let _histSaveTimer = null;
+
+  function toggleHistoryPanel() {
+    historyPanelOpen = !historyPanelOpen;
+    const panel = document.getElementById('hist-panel');
+    const btn   = document.getElementById('hist-btn');
+    panel.classList.toggle('open', historyPanelOpen);
+    btn.classList.toggle('active', historyPanelOpen);
+    if (historyPanelOpen) loadHistoryList();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && historyPanelOpen) toggleHistoryPanel();
+  });
+
+  function showSettingsTab(tab) {
+    document.querySelectorAll('.settings-tab').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.settings-nav-item').forEach(el => el.classList.remove('active'));
+    const tabEl = document.getElementById('stab-' + tab);
+    const btnEl = document.getElementById('stab-btn-' + tab);
+    if (tabEl) tabEl.classList.add('active');
+    if (btnEl) btnEl.classList.add('active');
+    if (tab === 'display') loadDisplayList();
+    if (tab === 'profile') loadProfileForm();
+    if (tab === 'ai')      loadAIConfig();
+    if (tab === 'voice')   loadVoiceTab();
+  }
+
+  // ─── AI Config ────────────────────────────────────────────────────────────
+  const AI_PERSONAS = {
+    jarvis:    'You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark\'s AI. You are highly intelligent, calm, precise, and subtly witty. You speak efficiently and never verbosely. You occasionally address the user with the appropriate honorific in the active language. You refer to yourself as JARVIS. Keep responses concise and sharp. You are running inside a holographic HUD.',
+    casual:    'You are JARVIS, a friendly and helpful AI assistant. Be warm, conversational, and use the user\'s first name. Keep things relaxed but still helpful and accurate.',
+    focused:   'You are JARVIS, a highly efficient AI. Be extremely concise. No greetings, no filler words. Answer directly. If a one-sentence answer suffices, give one sentence.',
+    humorous:  'You are JARVIS, a witty AI with a sharp sense of humor and dry British sarcasm. You are still helpful and accurate, but you enjoy a good quip. Think Jarvis meets Blackadder.',
+  };
+
+  let aiConfig = {
+    model:        'claude-sonnet-4-20250514',
+    max_tokens:   1000,
+    persona:      'jarvis',
+    custom_prompt: '',
+  };
+
+  function loadAIConfig() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('jarvis_ai_config') || '{}');
+      Object.assign(aiConfig, saved);
+    } catch {}
+
+    // Update UI to reflect loaded config
+    // Model cards
+    document.querySelectorAll('#ai-model-cards .ai-card').forEach(el => {
+      el.classList.remove('selected');
+    });
+    document.querySelectorAll('#ai-model-cards .ai-card').forEach(el => {
+      const val = el.getAttribute('onclick')?.match(/'([^']+)'\s*,\s*this/)?.[1];
+      if (val === aiConfig.model) el.classList.add('selected');
+    });
+    // Persona cards
+    document.querySelectorAll('#ai-persona-cards .ai-card').forEach(el => {
+      el.classList.remove('selected');
+    });
+    document.querySelectorAll('#ai-persona-cards .ai-card').forEach(el => {
+      const val = el.getAttribute('onclick')?.match(/'([^']+)'\s*,\s*this/)?.[1];
+      if (val === aiConfig.persona) el.classList.add('selected');
+    });
+    // Custom prompt
+    const promptEl = document.getElementById('ai-custom-prompt');
+    if (promptEl) promptEl.value = aiConfig.custom_prompt || '';
+  }
+
+  function selectAICard(group, value, el) {
+    const container = group === 'model' ? 'ai-model-cards' : 'ai-persona-cards';
+    document.querySelectorAll('#' + container + ' .ai-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    if (group === 'model')   aiConfig.model   = value;
+    if (group === 'persona') aiConfig.persona = value;
+  }
+
+  function saveAIConfig() {
+    const promptEl = document.getElementById('ai-custom-prompt');
+    if (promptEl) aiConfig.custom_prompt = promptEl.value.trim();
+    localStorage.setItem('jarvis_ai_config', JSON.stringify(aiConfig));
+    const st = document.getElementById('ai-status');
+    st.textContent = '✓ SAVED'; st.className = 'profile-status ok';
+    setTimeout(() => { st.textContent = ''; }, 2500);
+  }
+
+  function getSystemPrompt(langInstruction) {
+    const base = AI_PERSONAS[aiConfig.persona] || AI_PERSONAS.jarvis;
+    const custom = aiConfig.custom_prompt ? '\n\n' + aiConfig.custom_prompt : '';
+    const today   = new Date().toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    const timeNow = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    return base + custom + `\n\nCurrent date and time: ${today}, ${timeNow}.` + langInstruction;
+  }
+
+  // ─── Voice Config ─────────────────────────────────────────────────────────
+  let voiceConfig = { ttsEnabled: true, sttEnabled: true, rate: 0.92, pitch: 0.82, voiceName: '' };
+
+  function loadVoiceConfig() {
+    try { Object.assign(voiceConfig, JSON.parse(localStorage.getItem('jarvis_voice_config') || '{}')); } catch {}
+  }
+
+  function saveVoiceConfig() {
+    voiceConfig.ttsEnabled = document.getElementById('voice-tts-enabled')?.checked ?? true;
+    voiceConfig.sttEnabled = document.getElementById('voice-stt-enabled')?.checked ?? true;
+    voiceConfig.rate       = parseFloat(document.getElementById('voice-rate')?.value  || 0.92);
+    voiceConfig.pitch      = parseFloat(document.getElementById('voice-pitch')?.value || 0.82);
+    voiceConfig.voiceName  = document.getElementById('voice-select')?.value || '';
+    localStorage.setItem('jarvis_voice_config', JSON.stringify(voiceConfig));
+    // Update mic button visibility
+    const micBtn = document.getElementById('mic-btn');
+    if (micBtn) micBtn.style.display = voiceConfig.sttEnabled ? '' : 'none';
+  }
+
+  function loadVoiceTab() {
+    loadVoiceConfig();
+    const voices = speechSynthesis.getVoices();
+    const sel = document.getElementById('voice-select');
+    if (sel) {
+      sel.innerHTML = '<option value="">— system default —</option>';
+      voices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name; opt.textContent = `${v.name} [${v.lang}]`;
+        if (v.name === voiceConfig.voiceName) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      document.getElementById('voice-sel-count').textContent = voices.length + ' voices';
+    }
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setEl('voice-tts-enabled', voiceConfig.ttsEnabled); document.getElementById('voice-tts-enabled').checked = voiceConfig.ttsEnabled;
+    document.getElementById('voice-stt-enabled').checked = voiceConfig.sttEnabled;
+    setEl('voice-rate',  voiceConfig.rate);  document.getElementById('voice-rate-val').textContent  = voiceConfig.rate.toFixed(2) + '×';
+    setEl('voice-pitch', voiceConfig.pitch); document.getElementById('voice-pitch-val').textContent = voiceConfig.pitch.toFixed(2);
+  }
+
+  function testVoice() {
+    const testMsg = currentLang.greeting || 'J.A.R.V.I.S. voice system online. All parameters nominal.';
+    browserSpeak(testMsg);
+  }
+
+  // Load config immediately on startup
+  loadAIConfig();
+  loadVoiceConfig();
+
+  function loadProfileForm() {
+    const p = memoryCache.profile || {};
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('pf-firstname',  p.firstname  || p.name || '');
+    set('pf-surname',    p.surname    || '');
+    set('pf-age',        p.age        || '');
+    set('pf-location',   p.location   || p.city || '');
+    set('pf-occupation', p.occupation || p.job  || '');
+    set('pf-interests',  p.interests  || '');
+    // Email from session (read-only)
+    fetch('/api/auth/status').then(r => r.json()).then(d => {
+      const el = document.getElementById('pf-email');
+      if (el) el.value = d.user?.email || '';
+    }).catch(() => {});
+  }
+
+  async function saveProfile() {
+    const btn = document.getElementById('profile-save-btn');
+    const status = document.getElementById('profile-status');
+    const get = id => document.getElementById(id)?.value.trim() || '';
+
+    const profile = {};
+    if (get('pf-firstname'))  profile.firstname  = get('pf-firstname');
+    if (get('pf-surname'))    profile.surname    = get('pf-surname');
+    if (get('pf-age'))        profile.age        = get('pf-age');
+    if (get('pf-location'))   profile.location   = get('pf-location');
+    if (get('pf-occupation')) profile.occupation = get('pf-occupation');
+    if (get('pf-interests'))  profile.interests  = get('pf-interests');
+
+    btn.disabled = true;
+    status.textContent = '';
+    status.className = 'profile-status';
+
+    try {
+      const r = await fetch('/api/memory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile })
+      });
+      if (!r.ok) throw new Error('Server error');
+      const data = await r.json();
+      memoryCache = data.memory || memoryCache;
+      updateUserLabels();
+      status.textContent = '✓ SAVED';
+      status.className = 'profile-status ok';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } catch(e) {
+      status.textContent = '✗ SAVE FAILED';
+      status.className = 'profile-status err';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function loadDisplayList() {
+    const container = document.getElementById('display-list');
+    if (!container) return;
+    if (!window.electronAPI?.getDisplays) {
+      container.innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
+        DISPLAY CONTROL REQUIRES ELECTRON RUNTIME.</div>`;
+      return;
+    }
+
+    const [displays, winPos] = await Promise.all([
+      window.electronAPI.getDisplays(),
+      window.electronAPI.getWinPosition(),
+    ]);
+
+    // ── Build display map ──────────────────────────────────────
+    // Find bounding box of all displays in screen coordinates
+    const minX = Math.min(...displays.map(d => d.x));
+    const minY = Math.min(...displays.map(d => d.y));
+    const maxX = Math.max(...displays.map(d => d.x + d.width));
+    const maxY = Math.max(...displays.map(d => d.y + d.height));
+    const totalW = maxX - minX;
+    const totalH = maxY - minY;
+
+    const MAP_W = 480, MAP_H = Math.round(MAP_W * totalH / totalW);
+    const scale = MAP_W / totalW;
+
+    // Scaled JARVIS window size (assume 1280×780 logical)
+    const WIN_W = Math.round(1280 * scale);
+    const WIN_H = Math.round(780  * scale);
+    const jarvisLeft = Math.round((winPos[0] - minX) * scale);
+    const jarvisTop  = Math.round((winPos[1] - minY) * scale);
+
+    const screensHtml = displays.map(d => {
+      const l = Math.round((d.x - minX) * scale);
+      const t = Math.round((d.y - minY) * scale);
+      const w = Math.round(d.width  * scale);
+      const h = Math.round(d.height * scale);
+      return `<div class="display-map-screen" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px">
+        <div class="display-map-screen-label">${d.label}</div>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="display-map-wrap" id="display-map" style="width:${MAP_W}px;height:${MAP_H}px">
+        ${screensHtml}
+        <div class="display-map-jarvis" id="map-jarvis"
+             style="left:${jarvisLeft}px;top:${jarvisTop}px;width:${WIN_W}px;height:${WIN_H}px">
+          <div class="display-map-jarvis-label">J.A.R.V.I.S.</div>
+        </div>
+      </div>
+      ${displays.map(d => `
+        <div class="display-card ${d.current ? 'current' : ''}">
+          <div class="display-card-info">
+            <div class="display-card-label">${d.label}</div>
+            <div class="display-card-res">${d.width} × ${d.height} px &nbsp;·&nbsp; [${d.x}, ${d.y}]</div>
+            ${d.current ? '<div class="display-card-badge">▶ JARVIS IS HERE</div>' : ''}
+          </div>
+          <button class="display-move-btn ${d.current ? 'current-btn' : ''}"
+                  ${d.current ? 'disabled' : ''}
+                  onclick="moveToDisplay(${d.id})">
+            ${d.current ? '✓ CURRENT' : '→ MOVE HERE'}
+          </button>
+        </div>
+      `).join('')}
+    `;
+
+    // ── Drag logic on the map ──────────────────────────────────
+    const jarvisEl = document.getElementById('map-jarvis');
+    if (!jarvisEl) return;
+
+    let dragging = false;
+    let startMouseX, startMouseY, startJarvisX, startJarvisY;
+    // Real window position at drag start (screen coords)
+    let startWinX, startWinY;
+
+    jarvisEl.addEventListener('mousedown', async e => {
+      e.preventDefault();
+      dragging = true;
+      startMouseX = e.clientX;
+      startMouseY = e.clientY;
+      startJarvisX = jarvisLeft;
+      startJarvisY = jarvisTop;
+      const pos = await window.electronAPI.getWinPosition();
+      startWinX = pos[0]; startWinY = pos[1];
+      jarvisEl.style.transition = 'none';
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - startMouseX;
+      const dy = e.clientY - startMouseY;
+
+      // Move the indicator on the map
+      const newLeft = Math.max(0, Math.min(MAP_W - WIN_W, startJarvisX + dx));
+      const newTop  = Math.max(0, Math.min(MAP_H - WIN_H, startJarvisY + dy));
+      jarvisEl.style.left = newLeft + 'px';
+      jarvisEl.style.top  = newTop  + 'px';
+
+      // Move the real window (convert map coords back to screen coords)
+      const newWinX = Math.round(startWinX + dx / scale);
+      const newWinY = Math.round(startWinY + dy / scale);
+      window.electronAPI.setWinPosition(newWinX, newWinY);
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      jarvisEl.style.transition = '';
+      setTimeout(loadDisplayList, 200);
+    }, { once: true });
+  }
+
+  function moveToDisplay(displayId) {
+    if (!window.electronAPI?.moveToDisplay) return;
+    window.electronAPI.moveToDisplay(displayId);
+    setTimeout(loadDisplayList, 400);
+  }
+
+  async function loadHistoryList() {
+    try {
+      const r = await fetch('/api/conversations');
+      if (!r.ok) return;
+      const data = await r.json();
+      renderHistoryList(data.conversations || []);
+    } catch(e) {
+      console.warn('[HIST] load error:', e.message);
+    }
+  }
+
+  function renderHistoryList(convs) {
+    const el = document.getElementById('hist-list');
+    if (!convs.length) {
+      el.innerHTML = '<div class="hist-empty">NO RECORDS FOUND</div>';
+      return;
+    }
+    el.innerHTML = convs.map(c => {
+      const isActive = c.id === currentConvId;
+      const date = c.updated_at ? c.updated_at.slice(0,16).replace('T',' ') : '';
+      return `<div class="hist-item${isActive ? ' active' : ''}" onclick="loadConversation('${c.id}')">
+        <div class="hist-item-text">
+          <div class="hist-item-title">${escHtml(c.title || 'Untitled')}</div>
+          <div class="hist-item-date">${date}</div>
+        </div>
+        <button class="hist-del-btn" onclick="event.stopPropagation();deleteConversation('${c.id}')" title="Delete">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function loadConversation(convId) {
+    try {
+      const r = await fetch(`/api/conversations/load/${convId}`);
+      if (!r.ok) return;
+      const data = await r.json();
+      const msgs = data.messages || [];
+      if (!msgs.length) return;
+
+      // Clear current chat
+      const chatEl = document.getElementById('chat-messages');
+      if (chatEl) chatEl.innerHTML = '';
+      history.length = 0;
+
+      // Restore silent API context (not displayed)
+      history.push(
+        { role: 'user',      content: 'Who are you?' },
+        { role: 'assistant', content: currentLang.greeting }
+      );
+
+      // Replay real messages
+      msgs.forEach(m => {
+        const role   = m.role === 'user' ? 'user' : 'jarvis';
+        const bubble = appendMessage(role, '');
+        if (m.role === 'user') {
+          bubble.textContent = m.content;
+        } else {
+          bubble.innerHTML = renderMarkdown(m.content);
+        }
+        history.push({ role: m.role, content: m.content });
+      });
+
+      currentConvId = convId;
+      loadHistoryList();
+    } catch(e) {
+      console.warn('[HIST] load conv error:', e.message);
+    }
+  }
+
+  function newConversation() {
+    // Clear chat and start fresh
+    const chatEl = document.getElementById('chat-messages');
+    if (chatEl) chatEl.innerHTML = '';
+    history.length = 0;
+    history.push(
+      { role: 'user',      content: 'Who are you?' },
+      { role: 'assistant', content: currentLang.greeting }
+    );
+    appendMessage('jarvis', currentLang.greeting);
+    currentConvId = null;
+    document.getElementById('hist-saving').textContent = '';
+    loadHistoryList();
+    addLog('HIST', 'New conversation');
+  }
+
+  async function deleteConversation(convId) {
+    try {
+      const r = await fetch(`/api/conversations/delete/${convId}`, { method: 'POST' });
+      if (r.ok && convId === currentConvId) {
+        newConversation();
+      }
+      loadHistoryList();
+    } catch(e) {
+      console.warn('[HIST] delete error:', e.message);
+    }
+  }
+
+  function autoSaveConversation() {
+    // Skip the first 2 messages — they are silent API context (Who are you? + greeting)
+    const toSave = history.slice(2);
+    if (!toSave.length) return;
+    clearTimeout(_histSaveTimer);
+    _histSaveTimer = setTimeout(async () => {
+      const savingEl = document.getElementById('hist-saving');
+      if (savingEl) savingEl.textContent = 'SAVING...';
+      try {
+        const payload = { messages: toSave };
+        if (currentConvId) payload.id = currentConvId;
+        const r = await fetch('/api/conversations/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (r.ok) {
+          const data = await r.json();
+          currentConvId = data.id;
+          if (savingEl) {
+            savingEl.textContent = 'SAVED';
+            setTimeout(() => { if (savingEl) savingEl.textContent = ''; }, 2000);
+          }
+          if (historyPanelOpen) loadHistoryList();
+        }
+      } catch(e) {
+        console.warn('[HIST] save error:', e.message);
+        if (savingEl) savingEl.textContent = '';
+      }
+    }, 1500);
+  }
+
+  // ─── Log toggle ───────────────────────────────────────────────────────────
+  let logVisible = false;
+  function toggleLog() {
+    logVisible = !logVisible;
+    const list = document.getElementById('log-list');
+    const btn  = document.getElementById('log-toggle-btn');
+    list.style.display = logVisible ? 'flex' : 'none';
+    btn.classList.toggle('open', logVisible);
+    document.getElementById('panel-log').style.flex = logVisible ? '1' : '0 0 auto';
+  }
+
+  // ─── Clock ───────────────────────────────────────────────────────────────
+  const startTime = Date.now();
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function tick() {
+    const now = new Date();
+    const h = pad(now.getHours()), m = pad(now.getMinutes()), s = pad(now.getSeconds());
+    document.getElementById('clock-main').textContent = `${h}:${m}:${s}`;
+    document.getElementById('clock-top').textContent = `${h}:${m}:${s}`;
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    document.getElementById('date-main').textContent =
+      `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const eh = pad(Math.floor(elapsed/3600)), em = pad(Math.floor(elapsed%3600/60)), es = pad(elapsed%60);
+    document.getElementById('uptime-display').textContent = `UPTIME: ${eh}:${em}:${es}`;
+  }
+  setInterval(tick, 1000); tick();
+
+  // ─── Animated stats ───────────────────────────────────────────────────────
+  function jitter(id, barId, base, range, suffix='%') {
+    const v = Math.max(1, Math.min(99, base + Math.round((Math.random()-0.5)*range)));
+    const el = document.getElementById(id);
+    const bar = document.getElementById(barId);
+    if (el) el.textContent = v + suffix;
+    if (bar) bar.style.width = v + '%';
+  }
+  setInterval(() => {
+    jitter('cpu-val','cpu-bar',88,12);
+    jitter('mem-val','mem-bar',65,10);
+    jitter('pwr-val','pwr-bar',85,8);
+    jitter('tmp-val','tmp-bar',40,6);
+  }, 2000);
+
+  // ─── Log ─────────────────────────────────────────────────────────────────
+  let reqCount = 0, tokCount = 0;
+  function addLog(tag, msg) {
+    const list = document.getElementById('log-list');
+    const el = document.createElement('div');
+    el.className = 'log-entry new';
+    el.innerHTML = `<span class="log-tag">[${tag}]</span><span>${msg}</span>`;
+    list.appendChild(el);
+    if (list.children.length > 12) list.removeChild(list.firstChild);
+    setTimeout(() => el.classList.remove('new'), 2000);
+  }
+
+  // ─── Language config ──────────────────────────────────────────────────────
+  const LANGUAGES = [
+    {
+      code:'en', flag:'🇬🇧', label:'ENGLISH', ttsLang:'en-GB',
+      greeting:'Good day. All systems nominal. How may I assist you, sir?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'ONLINE', neuralLink:'NEURAL LINK: ACTIVE',
+        panelReactor:'ARC REACTOR', panelStatus:'SYSTEM STATUS', panelTemporal:'TEMPORAL',
+        panelThreat:'THREAT ANALYSIS', panelLog:'ACTIVITY LOG', panelLocation:'LOCATION TRACK', panelLang:'LANGUAGE MODULE',
+        statNeural:'NEURAL PROC', statMem:'MEMORY ALLOC', statRepulsor:'REPULSOR PWR', statThermal:'THERMAL CTRL',
+        statPerimeter:'PERIMETER', statPerimeterVal:'CLEAR', statIntrusion:'INTRUSION', statIntrusionVal:'NONE',
+        statThreat:'THREAT LEVEL', statThreatVal:'LOW',
+        reactorLabel:'POWER OUTPUT · 3000MW',
+        requests:'REQUESTS', tokens:'TOKENS EST',
+        location:'LOCATION', locationStatus:'TRACKING',
+        typingLabel:'JARVIS PROCESSING',
+        prefix:'STARK://', placeholder:'What do you need, sir?', sendBtn:'TRANSMIT',
+        logBoot:'Systems initialised', logNet:'Uplink established', logAI:'Neural core loaded',
+        logSec:'Perimeter scan OK', logReady:'Awaiting input', logLangSwitch:'Protocol',
+        logUser:'User input', logResponse:'Response', logError:'API call failed',
+        ttsReady:'TTS: READY', ttsNoVoice:'TTS: NO VOICE FOUND',
+      }
+    },
+    {
+      code:'cs', flag:'🇨🇿', label:'ČEŠTINA', ttsLang:'cs-CZ',
+      greeting:'Dobrý den. Všechny systémy jsou funkční. Jak vám mohu pomoci?',
+      ui:{
+        subtitle:'Jen Poměrně Velmi Inteligentní Systém',
+        online:'ONLINE', neuralLink:'NEURÁLNÍ SPOJENÍ: AKTIVNÍ',
+        panelReactor:'OBLOUKOVÝ REAKTOR', panelStatus:'STAV SYSTÉMU', panelTemporal:'ČAS',
+        panelThreat:'ANALÝZA HROZEB', panelLog:'PROTOKOL AKTIVIT', panelLocation:'SLEDOVÁNÍ POLOHY', panelLang:'JAZYKOVÝ MODUL',
+        statNeural:'NEURÁLNÍ PROC.', statMem:'PAMĚŤ', statRepulsor:'REPULZOR', statThermal:'TEPLOTA',
+        statPerimeter:'PERIMETR', statPerimeterVal:'ČISTÝ', statIntrusion:'PRŮNIK', statIntrusionVal:'ŽÁDNÝ',
+        statThreat:'ÚROVEŇ HROZBY', statThreatVal:'NÍZKÁ',
+        reactorLabel:'VÝKON · 3000MW',
+        requests:'DOTAZY', tokens:'TOKENY',
+        location:'POLOHA', locationStatus:'SLEDOVÁNÍ',
+        typingLabel:'JARVIS ZPRACOVÁVÁ',
+        prefix:'STARK://', placeholder:'Jak vám mohu pomoci?', sendBtn:'ODESLAT',
+        logBoot:'Systémy inicializovány', logNet:'Spojení navázáno', logAI:'Jádro načteno',
+        logSec:'Sken perimetru OK', logReady:'Čekám na vstup', logLangSwitch:'Protokol',
+        logUser:'Vstup uživatele', logResponse:'Odpověď', logError:'Chyba API',
+        ttsReady:'TTS: PŘIPRAVENO', ttsNoVoice:'TTS: HLAS NENALEZEN',
+      }
+    },
+    {
+      code:'de', flag:'🇩🇪', label:'DEUTSCH', ttsLang:'de-DE',
+      greeting:'Guten Tag. Alle Systeme sind nominal. Wie kann ich Ihnen helfen?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'ONLINE', neuralLink:'NEURALVERBINDUNG: AKTIV',
+        panelReactor:'LICHTBOGENREAKTOR', panelStatus:'SYSTEMSTATUS', panelTemporal:'ZEIT',
+        panelThreat:'BEDROHUNGSANALYSE', panelLog:'AKTIVITÄTSLOG', panelLocation:'STANDORTVERFOLGUNG', panelLang:'SPRACHMODUL',
+        statNeural:'NEURAL-PROZ.', statMem:'SPEICHER', statRepulsor:'REPULSOR', statThermal:'THERMIK',
+        statPerimeter:'PERIMETER', statPerimeterVal:'FREI', statIntrusion:'EINBRUCH', statIntrusionVal:'KEINER',
+        statThreat:'BEDROHUNG', statThreatVal:'NIEDRIG',
+        reactorLabel:'LEISTUNG · 3000MW',
+        requests:'ANFRAGEN', tokens:'TOKEN',
+        location:'STANDORT', locationStatus:'VERFOLGUNG',
+        typingLabel:'JARVIS VERARBEITET',
+        prefix:'STARK://', placeholder:'Wie kann ich helfen?', sendBtn:'SENDEN',
+        logBoot:'Systeme initialisiert', logNet:'Verbindung hergestellt', logAI:'Kern geladen',
+        logSec:'Perimetercheck OK', logReady:'Warte auf Eingabe', logLangSwitch:'Protokoll',
+        logUser:'Benutzereingabe', logResponse:'Antwort', logError:'API-Fehler',
+        ttsReady:'TTS: BEREIT', ttsNoVoice:'TTS: KEINE STIMME',
+      }
+    },
+    {
+      code:'fr', flag:'🇫🇷', label:'FRANÇAIS', ttsLang:'fr-FR',
+      greeting:'Bonjour. Tous les systèmes sont opérationnels. Comment puis-je vous aider ?',
+      ui:{
+        subtitle:'Juste Un Système Vraiment Très Intelligent',
+        online:'EN LIGNE', neuralLink:'LIEN NEURAL: ACTIF',
+        panelReactor:'RÉACTEUR ARC', panelStatus:'ÉTAT SYSTÈME', panelTemporal:'TEMPS',
+        panelThreat:'ANALYSE MENACES', panelLog:'JOURNAL ACTIVITÉ', panelLocation:'SUIVI POSITION', panelLang:'MODULE LANGUE',
+        statNeural:'PROC. NEURAL', statMem:'MÉMOIRE', statRepulsor:'RÉPULSEUR', statThermal:'THERMIQUE',
+        statPerimeter:'PÉRIMÈTRE', statPerimeterVal:'LIBRE', statIntrusion:'INTRUSION', statIntrusionVal:'AUCUNE',
+        statThreat:'MENACE', statThreatVal:'FAIBLE',
+        reactorLabel:'PUISSANCE · 3000MW',
+        requests:'REQUÊTES', tokens:'JETONS',
+        location:'POSITION', locationStatus:'SUIVI',
+        typingLabel:'JARVIS TRAITE',
+        prefix:'STARK://', placeholder:'Que puis-je faire ?', sendBtn:'ENVOYER',
+        logBoot:'Systèmes initialisés', logNet:'Connexion établie', logAI:'Noyau chargé',
+        logSec:'Scan périmètre OK', logReady:'En attente', logLangSwitch:'Protocole',
+        logUser:'Entrée utilisateur', logResponse:'Réponse', logError:'Erreur API',
+        ttsReady:'TTS: PRÊT', ttsNoVoice:'TTS: VOIX INTROUVABLE',
+      }
+    },
+    {
+      code:'es', flag:'🇪🇸', label:'ESPAÑOL', ttsLang:'es-ES',
+      greeting:'Buenos días. Todos los sistemas están operativos. ¿En qué puedo ayudarle?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'EN LÍNEA', neuralLink:'ENLACE NEURAL: ACTIVO',
+        panelReactor:'REACTOR DE ARCO', panelStatus:'ESTADO SISTEMA', panelTemporal:'TIEMPO',
+        panelThreat:'ANÁLISIS AMENAZAS', panelLog:'REGISTRO ACTIVIDAD', panelLocation:'RASTREO POSICIÓN', panelLang:'MÓDULO IDIOMA',
+        statNeural:'PROC. NEURAL', statMem:'MEMORIA', statRepulsor:'REPULSOR', statThermal:'TÉRMICA',
+        statPerimeter:'PERÍMETRO', statPerimeterVal:'LIBRE', statIntrusion:'INTRUSIÓN', statIntrusionVal:'NINGUNA',
+        statThreat:'AMENAZA', statThreatVal:'BAJA',
+        reactorLabel:'POTENCIA · 3000MW',
+        requests:'CONSULTAS', tokens:'TOKENS',
+        location:'UBICACIÓN', locationStatus:'RASTREO',
+        typingLabel:'JARVIS PROCESANDO',
+        prefix:'STARK://', placeholder:'¿En qué puedo ayudar?', sendBtn:'ENVIAR',
+        logBoot:'Sistemas iniciados', logNet:'Conexión establecida', logAI:'Núcleo cargado',
+        logSec:'Escaneo OK', logReady:'Esperando entrada', logLangSwitch:'Protocolo',
+        logUser:'Entrada usuario', logResponse:'Respuesta', logError:'Error API',
+        ttsReady:'TTS: LISTO', ttsNoVoice:'TTS: VOZ NO HALLADA',
+      }
+    },
+    {
+      code:'it', flag:'🇮🇹', label:'ITALIANO', ttsLang:'it-IT',
+      greeting:'Buongiorno. Tutti i sistemi sono operativi. Come posso assisterla?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'IN LINEA', neuralLink:'COLLEGAMENTO NEURALE: ATTIVO',
+        panelReactor:'REATTORE AD ARCO', panelStatus:'STATO SISTEMA', panelTemporal:'TEMPO',
+        panelThreat:'ANALISI MINACCE', panelLog:'REGISTRO ATTIVITÀ', panelLocation:'TRACCIAMENTO', panelLang:'MODULO LINGUA',
+        statNeural:'PROC. NEURALE', statMem:'MEMORIA', statRepulsor:'REPULSORE', statThermal:'TERMICA',
+        statPerimeter:'PERIMETRO', statPerimeterVal:'LIBERO', statIntrusion:'INTRUSIONE', statIntrusionVal:'NESSUNA',
+        statThreat:'MINACCIA', statThreatVal:'BASSA',
+        reactorLabel:'POTENZA · 3000MW',
+        requests:'RICHIESTE', tokens:'TOKEN',
+        location:'POSIZIONE', locationStatus:'TRACCIAMENTO',
+        typingLabel:'JARVIS IN ELABORAZIONE',
+        prefix:'STARK://', placeholder:'Come posso aiutare?', sendBtn:'INVIA',
+        logBoot:'Sistemi avviati', logNet:'Connessione stabilita', logAI:'Nucleo caricato',
+        logSec:'Scansione OK', logReady:'In attesa', logLangSwitch:'Protocollo',
+        logUser:'Input utente', logResponse:'Risposta', logError:'Errore API',
+        ttsReady:'TTS: PRONTO', ttsNoVoice:'TTS: VOCE NON TROVATA',
+      }
+    },
+    {
+      code:'pt', flag:'🇧🇷', label:'PORTUGUÊS', ttsLang:'pt-BR',
+      greeting:'Bom dia. Todos os sistemas estão operacionais. Como posso ajudar?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'ON-LINE', neuralLink:'LINK NEURAL: ATIVO',
+        panelReactor:'REATOR DE ARCO', panelStatus:'STATUS SISTEMA', panelTemporal:'TEMPO',
+        panelThreat:'ANÁLISE AMEAÇAS', panelLog:'REGISTRO ATIVIDADE', panelLocation:'RASTREAMENTO', panelLang:'MÓDULO IDIOMA',
+        statNeural:'PROC. NEURAL', statMem:'MEMÓRIA', statRepulsor:'REPULSOR', statThermal:'TÉRMICA',
+        statPerimeter:'PERÍMETRO', statPerimeterVal:'LIVRE', statIntrusion:'INTRUSÃO', statIntrusionVal:'NENHUMA',
+        statThreat:'AMEAÇA', statThreatVal:'BAIXA',
+        reactorLabel:'POTÊNCIA · 3000MW',
+        requests:'CONSULTAS', tokens:'TOKENS',
+        location:'LOCALIZAÇÃO', locationStatus:'RASTREAMENTO',
+        typingLabel:'JARVIS PROCESSANDO',
+        prefix:'STARK://', placeholder:'Como posso ajudar?', sendBtn:'ENVIAR',
+        logBoot:'Sistemas iniciados', logNet:'Conexão estabelecida', logAI:'Núcleo carregado',
+        logSec:'Scan OK', logReady:'Aguardando entrada', logLangSwitch:'Protocolo',
+        logUser:'Entrada usuário', logResponse:'Resposta', logError:'Erro API',
+        ttsReady:'TTS: PRONTO', ttsNoVoice:'TTS: VOZ NÃO ENCONTRADA',
+      }
+    },
+    {
+      code:'ru', flag:'🇷🇺', label:'РУССКИЙ', ttsLang:'ru-RU',
+      greeting:'Добрый день. Все системы в норме. Как я могу помочь вам?',
+      ui:{
+        subtitle:'Весьма Разумная Интеллектуальная Система',
+        online:'В СЕТИ', neuralLink:'НЕЙРОСВЯЗЬ: АКТИВНА',
+        panelReactor:'ДУГОВОЙ РЕАКТОР', panelStatus:'СТАТУС СИСТЕМЫ', panelTemporal:'ВРЕМЯ',
+        panelThreat:'АНАЛИЗ УГРОЗ', panelLog:'ЖУРНАЛ АКТИВНОСТИ', panelLocation:'СЛЕЖЕНИЕ', panelLang:'МОДУЛЬ ЯЗЫКА',
+        statNeural:'НЕЙРОПРОЦ.', statMem:'ПАМЯТЬ', statRepulsor:'РЕПУЛЬСОР', statThermal:'ТЕРМО',
+        statPerimeter:'ПЕРИМЕТР', statPerimeterVal:'ЧИСТО', statIntrusion:'ВТОРЖЕНИЕ', statIntrusionVal:'НЕТ',
+        statThreat:'УГРОЗА', statThreatVal:'НИЗКАЯ',
+        reactorLabel:'МОЩНОСТЬ · 3000МВт',
+        requests:'ЗАПРОСЫ', tokens:'ТОКЕНЫ',
+        location:'МЕСТОПОЛОЖЕНИЕ', locationStatus:'СЛЕЖЕНИЕ',
+        typingLabel:'ДЖАРВИС ОБРАБАТЫВАЕТ',
+        prefix:'СТАРК://', placeholder:'Как я могу помочь?', sendBtn:'ОТПРАВИТЬ',
+        logBoot:'Системы запущены', logNet:'Соединение установлено', logAI:'Ядро загружено',
+        logSec:'Периметр проверен', logReady:'Ожидание ввода', logLangSwitch:'Протокол',
+        logUser:'Ввод пользователя', logResponse:'Ответ', logError:'Ошибка API',
+        ttsReady:'TTS: ГОТОВ', ttsNoVoice:'TTS: ГОЛОС НЕ НАЙДЕН',
+      }
+    },
+    {
+      code:'ja', flag:'🇯🇵', label:'日本語', ttsLang:'ja-JP',
+      greeting:'こんにちは。全システム正常です。ご用件をどうぞ。',
+      ui:{
+        subtitle:'非常に賢いシステム',
+        online:'オンライン', neuralLink:'神経リンク：有効',
+        panelReactor:'アークリアクター', panelStatus:'システム状態', panelTemporal:'時刻',
+        panelThreat:'脅威分析', panelLog:'活動ログ', panelLocation:'位置追跡', panelLang:'言語モジュール',
+        statNeural:'ニューラル処理', statMem:'メモリ', statRepulsor:'リパルサー', statThermal:'熱制御',
+        statPerimeter:'周囲', statPerimeterVal:'安全', statIntrusion:'侵入', statIntrusionVal:'なし',
+        statThreat:'脅威レベル', statThreatVal:'低',
+        reactorLabel:'出力 · 3000MW',
+        requests:'リクエスト', tokens:'トークン',
+        location:'現在地', locationStatus:'追跡中',
+        typingLabel:'JARVIS 処理中',
+        prefix:'スターク://', placeholder:'ご用件をどうぞ', sendBtn:'送信',
+        logBoot:'システム起動', logNet:'接続確立', logAI:'コア読込完了',
+        logSec:'周囲スキャンOK', logReady:'入力待機中', logLangSwitch:'プロトコル',
+        logUser:'ユーザー入力', logResponse:'応答', logError:'APIエラー',
+        ttsReady:'TTS: 準備完了', ttsNoVoice:'TTS: 音声なし',
+      }
+    },
+    {
+      code:'zh', flag:'🇨🇳', label:'中文', ttsLang:'zh-CN',
+      greeting:'您好。所有系统运行正常。请问有什么可以帮您？',
+      ui:{
+        subtitle:'非常智能的系统',
+        online:'在线', neuralLink:'神经链接：激活',
+        panelReactor:'弧形反应堆', panelStatus:'系统状态', panelTemporal:'时间',
+        panelThreat:'威胁分析', panelLog:'活动日志', panelLocation:'位置追踪', panelLang:'语言模块',
+        statNeural:'神经处理器', statMem:'内存', statRepulsor:'反应力', statThermal:'热控制',
+        statPerimeter:'周界', statPerimeterVal:'安全', statIntrusion:'入侵', statIntrusionVal:'无',
+        statThreat:'威胁级别', statThreatVal:'低',
+        reactorLabel:'输出功率 · 3000MW',
+        requests:'请求', tokens:'令牌',
+        location:'位置', locationStatus:'追踪中',
+        typingLabel:'JARVIS 处理中',
+        prefix:'斯塔克://', placeholder:'有什么可以帮您？', sendBtn:'发送',
+        logBoot:'系统已初始化', logNet:'连接已建立', logAI:'核心已加载',
+        logSec:'周界扫描正常', logReady:'等待输入', logLangSwitch:'协议',
+        logUser:'用户输入', logResponse:'响应', logError:'API错误',
+        ttsReady:'TTS：就绪', ttsNoVoice:'TTS：未找到语音',
+      }
+    },
+    {
+      code:'ko', flag:'🇰🇷', label:'한국어', ttsLang:'ko-KR',
+      greeting:'안녕하십니까. 모든 시스템이 정상입니다. 어떻게 도와드릴까요?',
+      ui:{
+        subtitle:'매우 지능적인 시스템',
+        online:'온라인', neuralLink:'신경 링크: 활성',
+        panelReactor:'아크 원자로', panelStatus:'시스템 상태', panelTemporal:'시간',
+        panelThreat:'위협 분석', panelLog:'활동 로그', panelLocation:'위치 추적', panelLang:'언어 모듈',
+        statNeural:'신경 처리', statMem:'메모리', statRepulsor:'리펄서', statThermal:'열 제어',
+        statPerimeter:'경계', statPerimeterVal:'안전', statIntrusion:'침입', statIntrusionVal:'없음',
+        statThreat:'위협 수준', statThreatVal:'낮음',
+        reactorLabel:'출력 · 3000MW',
+        requests:'요청', tokens:'토큰',
+        location:'위치', locationStatus:'추적 중',
+        typingLabel:'JARVIS 처리 중',
+        prefix:'스타크://', placeholder:'어떻게 도와드릴까요?', sendBtn:'전송',
+        logBoot:'시스템 초기화', logNet:'연결 수립', logAI:'코어 로드',
+        logSec:'경계 스캔 정상', logReady:'입력 대기', logLangSwitch:'프로토콜',
+        logUser:'사용자 입력', logResponse:'응답', logError:'API 오류',
+        ttsReady:'TTS: 준비됨', ttsNoVoice:'TTS: 음성 없음',
+      }
+    },
+    {
+      code:'ar', flag:'🇸🇦', label:'العربية', ttsLang:'ar-SA',
+      greeting:'مرحباً. جميع الأنظمة تعمل بشكل طبيعي. كيف يمكنني مساعدتك؟',
+      ui:{
+        subtitle:'نظام ذكي للغاية',
+        online:'متصل', neuralLink:'الرابط العصبي: نشط',
+        panelReactor:'المفاعل القوسي', panelStatus:'حالة النظام', panelTemporal:'الوقت',
+        panelThreat:'تحليل التهديدات', panelLog:'سجل النشاط', panelLocation:'تتبع الموقع', panelLang:'وحدة اللغة',
+        statNeural:'المعالج العصبي', statMem:'الذاكرة', statRepulsor:'الدافع', statThermal:'الحرارة',
+        statPerimeter:'المحيط', statPerimeterVal:'آمن', statIntrusion:'اختراق', statIntrusionVal:'لا يوجد',
+        statThreat:'مستوى التهديد', statThreatVal:'منخفض',
+        reactorLabel:'الطاقة · 3000MW',
+        requests:'الطلبات', tokens:'الرموز',
+        location:'الموقع', locationStatus:'تتبع',
+        typingLabel:'جارفيس يعالج',
+        prefix:'ستارك://', placeholder:'كيف يمكنني المساعدة؟', sendBtn:'إرسال',
+        logBoot:'تهيئة الأنظمة', logNet:'الاتصال مُنشأ', logAI:'تحميل النواة',
+        logSec:'فحص المحيط', logReady:'في انتظار الإدخال', logLangSwitch:'البروتوكول',
+        logUser:'إدخال المستخدم', logResponse:'الاستجابة', logError:'خطأ API',
+        ttsReady:'TTS: جاهز', ttsNoVoice:'TTS: لا صوت',
+      }
+    },
+    {
+      code:'pl', flag:'🇵🇱', label:'POLSKI', ttsLang:'pl-PL',
+      greeting:'Dzień dobry. Wszystkie systemy działają prawidłowo. Jak mogę pomóc?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'ONLINE', neuralLink:'ŁĄCZE NEURONOWE: AKTYWNE',
+        panelReactor:'REAKTOR ŁUKOWY', panelStatus:'STAN SYSTEMU', panelTemporal:'CZAS',
+        panelThreat:'ANALIZA ZAGROŻEŃ', panelLog:'DZIENNIK AKTYWNOŚCI', panelLocation:'ŚLEDZENIE LOKALIZACJI', panelLang:'MODUŁ JĘZYKA',
+        statNeural:'PROC. NEURONOWY', statMem:'PAMIĘĆ', statRepulsor:'REPULSOR', statThermal:'TERMIKA',
+        statPerimeter:'OBWÓD', statPerimeterVal:'CZYSTY', statIntrusion:'INTRUZJA', statIntrusionVal:'BRAK',
+        statThreat:'POZIOM ZAGROŻENIA', statThreatVal:'NISKI',
+        reactorLabel:'MOC · 3000MW',
+        requests:'ZAPYTANIA', tokens:'TOKENY',
+        location:'LOKALIZACJA', locationStatus:'ŚLEDZENIE',
+        typingLabel:'JARVIS PRZETWARZA',
+        prefix:'STARK://', placeholder:'Jak mogę pomóc?', sendBtn:'WYŚLIJ',
+        logBoot:'Systemy zainicjowane', logNet:'Połączenie nawiązane', logAI:'Rdzeń załadowany',
+        logSec:'Skan obwodu OK', logReady:'Oczekuję na wejście', logLangSwitch:'Protokół',
+        logUser:'Wejście użytkownika', logResponse:'Odpowiedź', logError:'Błąd API',
+        ttsReady:'TTS: GOTOWY', ttsNoVoice:'TTS: BRAK GŁOSU',
+      }
+    },
+    {
+      code:'sk', flag:'🇸🇰', label:'SLOVENČINA', ttsLang:'sk-SK',
+      greeting:'Dobrý deň. Všetky systémy sú funkčné. Ako vám môžem pomôcť?',
+      ui:{
+        subtitle:'Just A Rather Very Intelligent System',
+        online:'ONLINE', neuralLink:'NEURÁLNE SPOJENIE: AKTÍVNE',
+        panelReactor:'OBLÚKOVÝ REAKTOR', panelStatus:'STAV SYSTÉMU', panelTemporal:'ČAS',
+        panelThreat:'ANALÝZA HROZIEB', panelLog:'PROTOKOL AKTIVÍT', panelLocation:'SLEDOVANIE POLOHY', panelLang:'JAZYKOVÝ MODUL',
+        statNeural:'NEURÁLNY PROC.', statMem:'PAMÄŤ', statRepulsor:'REPULZOR', statThermal:'TEPLO',
+        statPerimeter:'PERIMETER', statPerimeterVal:'ČISTÝ', statIntrusion:'PRIENIK', statIntrusionVal:'ŽIADNY',
+        statThreat:'ÚROVEŇ HROZBY', statThreatVal:'NÍZKA',
+        reactorLabel:'VÝKON · 3000MW',
+        requests:'DOTAZY', tokens:'TOKENY',
+        location:'POLOHA', locationStatus:'SLEDOVANIE',
+        typingLabel:'JARVIS SPRACÚVA',
+        prefix:'STARK://', placeholder:'Ako vám môžem pomôcť?', sendBtn:'ODOSLAŤ',
+        logBoot:'Systémy inicializované', logNet:'Spojenie nadviazané', logAI:'Jadro načítané',
+        logSec:'Sken perimetra OK', logReady:'Čakám na vstup', logLangSwitch:'Protokol',
+        logUser:'Vstup používateľa', logResponse:'Odpoveď', logError:'Chyba API',
+        ttsReady:'TTS: PRIPRAVENÉ', ttsNoVoice:'TTS: HLAS NENÁJDENÝ',
+      }
+    },
+  ];
+
+  let currentLang = LANGUAGES[0];
+
+  // ─── Apply UI translations ────────────────────────────────────────────────
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+  function setAttr(id, attr, val) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute(attr, val);
+  }
+
+  function applyUI(lang) {
+    const u = lang.ui;
+    setText('title-sub', u.subtitle);
+    setText('status-online', u.online);
+    setText('status-neural', u.neuralLink);
+    setAttr('panel-reactor',  'data-label', u.panelReactor);
+    setAttr('panel-temporal', 'data-label', u.panelTemporal);
+    setAttr('panel-log',      'data-label', u.panelLog);
+    setAttr('panel-location', 'data-label', u.panelLocation);
+    setAttr('panel-lang',     'data-label', u.panelLang);
+    setText('reactor-label',  u.reactorLabel);
+    setText('unit-requests',  u.requests);
+    setText('unit-tokens',    u.tokens);
+    setText('location-lbl',        u.location);
+    setText('location-status-lbl', u.locationStatus);
+    setText('input-prefix',  u.prefix);
+    setText('send-btn',       u.sendBtn);
+    setText('typing-label',   u.typingLabel);
+    const inp = document.getElementById('user-input');
+    if (inp) inp.placeholder = u.placeholder;
+    const voices = speechSynthesis.getVoices();
+    const voice  = voices.find(v => v.lang.startsWith(lang.ttsLang.split('-')[0]));
+    setText('lang-voice-info', voice ? `TTS: ${voice.name.slice(0,22)}` : u.ttsNoVoice);
+    document.documentElement.lang = lang.code;
+  }
+
+  function buildLangDropdown() {
+    const dd = document.getElementById('lang-dropdown');
+    dd.innerHTML = '';
+    LANGUAGES.forEach(lang => {
+      const opt = document.createElement('div');
+      opt.className = 'lang-option' + (lang.code === currentLang.code ? ' selected' : '');
+      const voices = speechSynthesis.getVoices();
+      const hasVoice = voices.some(v => v.lang.startsWith(lang.ttsLang.split('-')[0]));
+      const ttsBadge = hasVoice ? '<span class="lang-tts-badge">TTS✓</span>' : '';
+      opt.innerHTML = `<span class="lang-flag">${lang.flag}</span><span>${lang.label}</span>${ttsBadge}`;
+      opt.onclick = () => selectLanguage(lang.code);
+      dd.appendChild(opt);
+    });
+  }
+
+  function toggleLangDropdown() {
+    const dd = document.getElementById('lang-dropdown');
+    const chevron = document.getElementById('lang-chevron');
+    dd.classList.toggle('open');
+    chevron.classList.toggle('open');
+    if (dd.classList.contains('open')) buildLangDropdown();
+  }
+
+  function selectLanguage(code) {
+    const lang = LANGUAGES.find(l => l.code === code);
+    if (!lang) return;
+    currentLang = lang;
+
+    // Update selector display
+    document.getElementById('lang-flag').textContent  = lang.flag;
+    document.getElementById('lang-label').textContent = lang.label;
+
+    // Close dropdown & rebuild
+    document.getElementById('lang-dropdown').classList.remove('open');
+    document.getElementById('lang-chevron').classList.remove('open');
+    buildLangDropdown();
+
+    // Apply all UI strings
+    applyUI(lang);
+
+    // Reset chat with greeting in new language
+    const chatEl = document.getElementById('chat-messages');
+    chatEl.innerHTML = '';
+    history.length = 0;
+    history.push(
+      { role: 'user',      content: 'Who are you?' },
+      { role: 'assistant', content: lang.greeting  }
+    );
+    appendMessage('jarvis', lang.greeting);
+    addLog(lang.ui.logLangSwitch, lang.label);
+  }
+
+  speechSynthesis.onvoiceschanged = buildLangDropdown;
+  buildLangDropdown();
+  applyUI(currentLang);
+
+  // ─── Chat ─────────────────────────────────────────────────────────────────
+  const input  = document.getElementById('user-input');
+  const btn    = document.getElementById('send-btn');
+  const msgs   = document.getElementById('chat-messages');
+  const typing = document.getElementById('typing');
+
+  // ── Markdown renderer ────────────────────────────────────────────────────
+  function renderMarkdown(md) {
+    if (!md) return '';
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // Chraň kódové bloky před zpracováním
+    const blocks = [];
+    let s = md.replace(/```[\s\S]*?```/g, m => {
+      const code = m.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '');
+      blocks.push(`<pre><code>${esc(code.trim())}</code></pre>`);
+      return '\x00B' + (blocks.length - 1) + '\x00';
+    });
+
+    // Escapuj HTML a aplikuj inline formátování
+    s = esc(s)
+      .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*([^*]+)\*\*/g,     '<strong>$1</strong>')
+      .replace(/\*([^*\n]+)\*/g,       '<em>$1</em>')
+      .replace(/`([^`]+)`/g,           '<code>$1</code>');
+
+    // Zpracuj řádky
+    const out = s.split('\n').map(line => {
+      const h = line.match(/^(#{1,3})\s+(.+)/);
+      if (h)                        return `<h${h[1].length}>${h[2]}</h${h[1].length}>`;
+      if (/^---+$/.test(line))      return '<hr>';
+      if (line.startsWith('&gt; ')) return `<blockquote>${line.slice(5)}</blockquote>`;
+      const ul = line.match(/^[ \t]*[-*+]\s+(.+)/);
+      if (ul)                       return `<li>${ul[1]}</li>`;
+      const ol = line.match(/^\d+\.\s+(.+)/);
+      if (ol)                       return `<li>${ol[1]}</li>`;
+      if (!line.trim())             return '';
+      return `<p>${line}</p>`;
+    }).join('\n');
+
+    // Obnov kódové bloky
+    return out.replace(/\x00B(\d+)\x00/g, (_, i) => blocks[+i]);
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  function appendMessage(role, text) {
+    const wrap   = document.createElement('div');
+    wrap.className = `message ${role}`;
+    const label  = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? getUserLabel() : 'J.A.R.V.I.S.';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+    return bubble;
+  }
+
+  const history = [
+    { role: 'user',      content: 'Who are you?' },
+    { role: 'assistant', content: LANGUAGES[0].greeting }
+  ];
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text || btn.disabled) return;
+    input.value = '';
+    btn.disabled = true;
+    if (window._setReactorState) _setReactorState('thinking');
+
+    appendMessage('user', text);
+    history.push({ role: 'user', content: text });
+    reqCount++;
+    document.getElementById('req-count').textContent = reqCount;
+    addLog(currentLang.ui.logUser, text.slice(0,24) + (text.length>24?'…':''));
+
+    const langInstruction = currentLang.code !== 'en'
+      ? ` IMPORTANT: You MUST respond ONLY in ${currentLang.label} (BCP-47: ${currentLang.ttsLang}). Never use English.`
+      : '';
+
+    // Vytvoř prázdnou JARVIS bublinu — text přibude streamingem
+    typing.classList.add('visible');
+    msgs.scrollTop = msgs.scrollHeight;
+    const bubble = appendMessage('jarvis', '');
+    typing.classList.remove('visible');
+
+    let fullReply = '';
+
+    try {
+      const res = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: aiConfig.model,
+          max_tokens: aiConfig.max_tokens,
+          system: getSystemPrompt(langInstruction),
+          messages: history
+        })
+      });
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let lineBuffer = '';
+
+      function processSSELine(line) {
+        if (!line.startsWith('data: ')) return;
+        let data;
+        try { data = JSON.parse(line.slice(6)); } catch { return; }
+        if (data.t !== undefined) {
+          fullReply += data.t;
+          bubble.textContent = fullReply;
+          msgs.scrollTop = msgs.scrollHeight;
+        } else if (data.searching) {
+          document.getElementById('searching').classList.add('visible');
+        } else if (data.done) {
+          document.getElementById('searching').classList.remove('visible');
+        } else if (data.error) {
+          bubble.textContent = '[ ERROR ] ' + (data.error.message || JSON.stringify(data.error));
+        }
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        lineBuffer += decoder.decode(value, { stream: true });
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop(); // neúplný řádek ponech v bufferu
+        for (const line of lines) processSSELine(line);
+      }
+
+      // Zpracuj případný zbytek v bufferu po zavření streamu
+      if (lineBuffer.trim()) processSSELine(lineBuffer);
+
+      if (!fullReply) throw new Error('Empty response');
+
+      // Stream skončil — vyrenderuj markdown
+      document.getElementById('searching').classList.remove('visible');
+      const html = renderMarkdown(fullReply);
+      bubble.innerHTML = html;
+      msgs.scrollTop = msgs.scrollHeight;
+
+      speakText(fullReply);
+      history.push({ role: 'assistant', content: fullReply });
+      loadMemory();
+      autoSaveConversation();
+
+      const toks = Math.round(fullReply.split(' ').length * 1.3);
+      tokCount += toks;
+      document.getElementById('tok-count').textContent = tokCount > 999 ? (tokCount/1000).toFixed(1)+'k' : tokCount;
+      addLog(currentLang.ui.logResponse, toks + ' tok');
+
+    } catch(err) {
+      document.getElementById('searching').classList.remove('visible');
+      typing.classList.remove('visible');
+      const errMsg = '[ ERROR ] ' + (err.message || 'Network failure. Check your connection.');
+      bubble.textContent = errMsg;
+      addLog(currentLang.ui.logError, err.message?.slice(0,20) || 'unknown');
+    }
+
+    btn.disabled = false;
+    if (window._setReactorState) _setReactorState('idle');
+    input.focus();
+  }
+
+  // ─── Voice config (browser TTS) ────────────────────────────────────────────
+  let mediaStream   = null;
+  let mediaRecorder = null;
+  let audioChunks   = [];
+  let isListening   = false;
+  let isSpeaking    = false;
+
+  function setVoiceStatus(mode, text) {
+    const vs = document.getElementById('voice-status');
+    const vt = document.getElementById('voice-status-text');
+    const mb = document.getElementById('mic-btn');
+    vs.className = 'voice-status';
+    mb.className = 'mic-btn';
+    if (mode === 'listening') {
+      vs.classList.add('visible', 'listening');
+      mb.classList.add('listening');
+      vt.textContent = text;
+      if (window._setReactorState) _setReactorState('listening');
+    } else if (mode === 'speaking') {
+      vs.classList.add('visible', 'speaking');
+      mb.classList.add('speaking');
+      vt.textContent = text;
+      if (window._setReactorState) _setReactorState('speaking');
+    } else {
+      vt.textContent = '';
+      if (window._setReactorState) _setReactorState('idle');
+    }
+  }
+
+  // Pick the best available voice for a given language
+  function getBestVoice(ttsLang) {
+    const voices = speechSynthesis.getVoices();
+    const langBase = ttsLang.split('-')[0].toLowerCase();
+    const exact    = voices.find(v => v.lang.toLowerCase() === ttsLang.toLowerCase());
+    const regional = voices.find(v => v.lang.toLowerCase().startsWith(langBase + '-'));
+    const loose    = voices.find(v => v.lang.toLowerCase().startsWith(langBase));
+    // Also try matching by name for Windows voices (e.g. "Microsoft Jitka" contains "Czech" — not helpful, but lang tag should be cs-CZ)
+    const preferred = [exact, regional, loose].filter(Boolean);
+    const nonDefault = preferred.find(v => !v.default);
+    return nonDefault || preferred[0] || null;
+  }
+
+  function diagVoices() {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      appendMessage('jarvis', '[ VOICE SCAN ] No voices loaded yet. Try clicking SCAN VOICES again in 2 seconds, or fully restart your browser after installing the Czech voice pack.');
+      return;
+    }
+    const csVoices = voices.filter(v => v.lang.toLowerCase().startsWith('cs'));
+    if (csVoices.length > 0) {
+      const names = csVoices.map(v => `• ${v.name} [${v.lang}]`).join('\n');
+      appendMessage('jarvis', `[ VOICE SCAN ] Czech voices found (${csVoices.length}):\n${names}\n\nAttempting to speak now...`);
+      // Force update the TTS info and try speaking
+      setText('lang-voice-info', 'TTS: ' + csVoices[0].name.slice(0, 20));
+      shownHints.clear();
+      speakText('Dobrý den. Jsem J.A.R.V.I.S. Český hlasový modul je aktivní.');
+    } else {
+      const allLangs = [...new Set(voices.map(v => v.lang))].sort().join(', ');
+      appendMessage('jarvis', `[ VOICE SCAN ] No Czech voice found.\n\nTotal voices available: ${voices.length}\nLanguages: ${allLangs}\n\nPlease fully close Chrome (all windows), then reopen it. Windows sometimes requires a full browser restart to expose newly installed voices.`);
+    }
+  }
+
+  function speakText(text) {
+    if (!text || !voiceConfig.ttsEnabled) return;
+    browserSpeak(text);
+  }
+
+  function browserSpeak(text) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const utt   = new SpeechSynthesisUtterance(text);
+    utt.lang    = currentLang.ttsLang;
+    // Use manually selected voice, or auto-detect best
+    const voices = speechSynthesis.getVoices();
+    const manual = voiceConfig.voiceName ? voices.find(v => v.name === voiceConfig.voiceName) : null;
+    const voice  = manual || getBestVoice(currentLang.ttsLang);
+    if (voice) utt.voice = voice;
+    utt.rate = voiceConfig.rate; utt.pitch = voiceConfig.pitch; utt.volume = 1;
+    isSpeaking = true;
+    setVoiceStatus('speaking', 'JARVIS');
+    utt.onend = utt.onerror = () => { isSpeaking = false; setVoiceStatus('off'); };
+    speechSynthesis.speak(utt);
+  }
+
+  // Show a one-time hint in chat on how to install the missing voice
+  const shownHints = new Set();
+  function showVoiceInstallHint(langCode) {
+    if (shownHints.has(langCode)) return;
+    shownHints.add(langCode);
+    const hints = {
+      cs: '[ TTS UNAVAILABLE ] Czech voice not found on this system.\n\nTo enable Czech speech:\n• Windows: Settings → Time & Language → Speech → Add voices → search "Czech"\n• macOS: System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → Czech\n• Chrome/Edge on Android: Settings → Accessibility → Text-to-speech → install Czech\n\nAfter installing, reload this page.',
+      sk: '[ TTS UNAVAILABLE ] Slovak voice not installed. Install it via OS speech settings.',
+      pl: '[ TTS UNAVAILABLE ] Polish voice not installed. Install it via OS speech settings.',
+      ar: '[ TTS UNAVAILABLE ] Arabic voice not installed. Install it via OS speech settings.',
+    };
+    const msg = hints[langCode] || `[ TTS UNAVAILABLE ] No voice found for this language (${langCode}). Install it via your OS speech/accessibility settings, then reload.`;
+    appendMessage('jarvis', msg);
+  }
+
+  function toggleMic() {
+    if (isSpeaking) { speechSynthesis.cancel(); isSpeaking = false; setVoiceStatus('off'); return; }
+    if (!voiceConfig.sttEnabled) return;
+    if (isListening) { stopListening(); return; }
+    startListening();
+  }
+
+  function startListening() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      addLog('MIC', 'getUserMedia not supported');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      .then(stream => {
+        mediaStream  = stream;
+        audioChunks  = [];
+        const opts   = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                       ? { mimeType: 'audio/webm;codecs=opus' } : {};
+        mediaRecorder = new MediaRecorder(stream, opts);
+
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+
+        mediaRecorder.onstop = () => {
+          stream.getTracks().forEach(t => t.stop());
+          mediaStream = null;
+
+          if (!audioChunks.length) {
+            isListening = false; setVoiceStatus('off'); return;
+          }
+
+          setVoiceStatus('listening', 'PROCESSING...');
+          const mime = mediaRecorder.mimeType || 'audio/webm';
+          const blob = new Blob(audioChunks, { type: mime });
+
+          // Pošli raw audio přímo na server (bez konverze v prohlížeči)
+          fetch(`/api/stt?lang=${currentLang.ttsLang}`, {
+            method:  'POST',
+            headers: { 'Content-Type': mime },
+            body:    blob
+          })
+          .then(r => r.json())
+          .then(result => {
+            if (result.transcript && result.transcript.trim()) {
+              document.getElementById('user-input').value = result.transcript;
+              setTimeout(() => sendMessage(), 100);
+            } else if (result.error) {
+              addLog('MIC', result.error);
+              appendMessage('jarvis', '[ MIC ] ' + result.error);
+            } else {
+              addLog('MIC', 'žádný hlas rozpoznán');
+            }
+          })
+          .catch(e => addLog('MIC', 'fetch: ' + e.message))
+          .finally(() => { isListening = false; setVoiceStatus('off'); });
+        };
+
+        mediaRecorder.start();
+        isListening = true;
+        setVoiceStatus('listening', 'LISTENING');
+        addLog('MIC', 'recording · ' + currentLang.ttsLang);
+
+        // Auto-stop po 15s
+        setTimeout(() => { if (isListening) stopListening(); }, 15000);
+      })
+      .catch(err => {
+        isListening = false;
+        setVoiceStatus('off');
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          appendMessage('jarvis', '[ MIC ] Přístup k mikrofonu odepřen.\n\nZkontroluj: Windows → Nastavení → Ochrana osobních údajů → Mikrofon → povol přístup aplikacím.');
+        } else {
+          addLog('MIC', 'getUserMedia: ' + err.message);
+        }
+      });
+  }
+
+  function stopListening() {
+    if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+    else {
+      if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+      isListening = false;
+      setVoiceStatus('off');
+    }
+  }
+
+  // ─── Arc Reactor Engine ────────────────────────────────────────────────────
+  (function reactorEngine() {
+    const canvas    = document.getElementById('reactor-canvas');
+    const reactorEl = document.getElementById('reactor');
+    if (!canvas || !reactorEl) return;
+
+    const ctx = canvas.getContext('2d');
+    const W = 130, H = 130, CX = 65, CY = 65;
+    let   rState = 'idle';
+
+    // ── State API ──
+    window._setReactorState = function(s) {
+      rState = s;
+      reactorEl.classList.remove('state-thinking','state-speaking','state-listening');
+      if (s !== 'idle') reactorEl.classList.add('state-' + s);
+    };
+
+    // ── Particles ──
+    const COUNT = 48;
+    const pts = Array.from({length: COUNT}, (_, i) => ({
+      angle:  (i / COUNT) * Math.PI * 2,
+      radius: 15 + Math.random() * 40,
+      size:   0.7 + Math.random() * 1.5,
+      spd:    (0.007 + Math.random() * 0.012) * (Math.random() < .5 ? 1 : -1),
+      life:   Math.random(),
+      decay:  0.002 + Math.random() * 0.004,
+      blue:   Math.random() < .73
+    }));
+
+    // ── Render loop ──
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
+      const sm = rState==='thinking' ? 2.8 : rState==='speaking' ? 1.6 : rState==='listening' ? 2 : 1;
+
+      pts.forEach(p => {
+        p.angle += p.spd * sm;
+        p.life  -= p.decay;
+        if (p.life <= 0) {
+          p.life = .7 + Math.random() * .3;
+          p.radius = 15 + Math.random() * 40;
+          p.size   = .7 + Math.random() * 1.5;
+        }
+        const x = CX + Math.cos(p.angle) * p.radius;
+        const y = CY + Math.sin(p.angle) * p.radius;
+        const a = p.life * (rState==='thinking' ? .9 : .6);
+        const c = p.blue ? `rgba(0,212,255,${a})` : `rgba(255,107,43,${a*.85})`;
+        ctx.shadowBlur  = 5; ctx.shadowColor = c;
+        ctx.beginPath(); ctx.arc(x, y, p.size * (rState==='thinking' ? 1.35 : 1), 0, Math.PI*2);
+        ctx.fillStyle = c; ctx.fill();
+      });
+
+      // Energy arc flashes during thinking
+      if (rState === 'thinking' && Math.random() < .09) {
+        const r  = 18 + Math.random() * 38;
+        const a1 = Math.random() * Math.PI * 2;
+        const a2 = a1 + .15 + Math.random() * .65;
+        ctx.beginPath(); ctx.arc(CX, CY, r, a1, a2);
+        ctx.strokeStyle = `rgba(255,${70+Math.floor(Math.random()*130)},43,${.4+Math.random()*.45})`;
+        ctx.lineWidth = .6 + Math.random() * .9;
+        ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(255,107,43,.9)';
+        ctx.stroke();
+      }
+
+      // Soft listening pulse rings
+      if (rState === 'listening') {
+        const t = Date.now() / 600;
+        for (let i = 0; i < 2; i++) {
+          const r = 20 + i*18 + (Math.sin(t + i*Math.PI) * .5 + .5) * 14;
+          ctx.beginPath(); ctx.arc(CX, CY, r, 0, Math.PI*2);
+          ctx.strokeStyle = `rgba(0,255,136,${.08 - i*.03})`;
+          ctx.lineWidth = 1; ctx.shadowBlur = 0; ctx.stroke();
+        }
+      }
+
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(loop);
+    }
+    loop();
+  })();
+
+</script>
+</body>
+</html>
