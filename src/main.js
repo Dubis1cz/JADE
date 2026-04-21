@@ -441,7 +441,17 @@ app.whenReady().then(async () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   if (pyServer) {
-    pyServer.kill();
+    try {
+      if (process.platform === 'win32') {
+        // Force kill celého process tree na Windows
+        require('child_process').execSync(`taskkill /pid ${pyServer.pid} /T /F`, { stdio: 'ignore' });
+      } else {
+        pyServer.kill('SIGKILL');
+      }
+    } catch (e) {
+      pyServer.kill();
+    }
+    pyServer = null;
   }
 });
 
