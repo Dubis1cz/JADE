@@ -1,7 +1,7 @@
 {
-  "name": "jarvis",
-  "version": "1.0.1",
-  "description": "J.A.R.V.I.S. - Just A Rather Very Intelligent System",
+  "name": "jade",
+  "version": "1.1.1",
+  "description": "J.A.D.E. - JDStudios Artificial Digital Executive",
   "author": "Dubis1cz",
   "main": "src/main.js",
   "scripts": {
@@ -10,8 +10,8 @@
     "publish": "electron-builder --win --x64 --publish always"
   },
   "build": {
-    "appId": "com.dubis1cz.jarvis",
-    "productName": "JARVIS",
+    "appId": "com.dubis1cz.jade",
+    "productName": "JADE",
     "compression": "maximum",
     "publish": {
       "provider": "github",
@@ -20,12 +20,13 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "src/icon.ico"
+      "icon": "src/icon.ico",
+      "artifactName": "JADE-Setup-${version}.exe"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": false,
-      "shortcutName": "JARVIS",
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "JADE",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true
@@ -35,7 +36,7 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "jarvis.html",  "to": "jarvis.html"  },
+      { "from": "jade.html",  "to": "jade.html"  },
       { "from": "login.html",   "to": "login.html"   },
       { "from": "server.py",    "to": "server.py"    },
       { "from": "python-embed/", "to": "python-embed/", "filter": ["**/*"] }

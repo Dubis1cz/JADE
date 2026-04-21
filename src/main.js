@@ -4,66 +4,62 @@ const http   = require('http');
 const { spawn, execFile } = require('child_process');
 const fs     = require('fs');
 
+// Log to file (useful for debugging packaged app)
+const logFile = path.join(require('os').tmpdir(), 'jarvis-updater.log');
+function logUpdate(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  console.log('[UPDATER]', msg);
+  try { fs.appendFileSync(logFile, line); } catch {}
+}
+
 // Auto-updater (pouze v produkci — při vývoji se přeskočí)
 let autoUpdater = null;
 if (app.isPackaged) {
   try {
     autoUpdater = require('electron-updater').autoUpdater;
 
-    autoUpdater.autoDownload    = false;  // Nestahuj automaticky — nejdřív se zeptej
+    autoUpdater.autoDownload         = false;  // čekáme na souhlas uživatele
     autoUpdater.autoInstallOnAppQuit = false;
-
-    autoUpdater.logger = require('electron').app
-      ? { info: console.log, warn: console.warn, error: console.error } : null;
+    autoUpdater.logger = { info: logUpdate, warn: logUpdate, error: logUpdate, debug: () => {} };
 
     autoUpdater.on('update-available', (info) => {
+      logUpdate(`Update available: ${info.version}`);
       dialog.showMessageBox({
-        type:    'info',
-        title:   'J.A.R.V.I.S. — Update Available',
-        message: `New version ${info.version} is available.`,
-        detail:  `You are running v${app.getVersion()}.\nWould you like to download and install the update now?`,
-        buttons: ['Download & Install', 'Later'],
+        type:      'question',
+        title:     'J.A.D.E. — Update Available',
+        message:   `New version ${info.version} is available.`,
+        detail:    `You are running v${app.getVersion()}.\nThe update will install silently in the background.`,
+        buttons:   ['Install Now', 'Later'],
         defaultId: 0,
         cancelId:  1,
         icon: path.join(__dirname, 'icon.ico'),
       }).then(({ response }) => {
         if (response === 0) {
+          logUpdate('User accepted update — downloading...');
           autoUpdater.downloadUpdate();
+        } else {
+          logUpdate('User postponed update');
         }
       });
     });
 
     autoUpdater.on('download-progress', (progress) => {
-      if (mainWindow) {
-        mainWindow.setProgressBar(progress.percent / 100);
-        mainWindow.setTitle(`JARVIS — Downloading update ${Math.round(progress.percent)}%`);
-      }
+      logUpdate(`Download: ${Math.round(progress.percent)}%`);
+      if (mainWindow) mainWindow.setProgressBar(progress.percent / 100);
     });
 
     autoUpdater.on('update-downloaded', () => {
+      logUpdate('Update downloaded — installing silently');
       if (mainWindow) {
         mainWindow.setProgressBar(-1);
-        mainWindow.setTitle('J.A.R.V.I.S.');
+        mainWindow.setTitle('J.A.D.E.');
       }
-      dialog.showMessageBox({
-        type:    'info',
-        title:   'J.A.R.V.I.S. — Ready to Install',
-        message: 'Update downloaded.',
-        detail:  'The update will be installed when you restart JARVIS.',
-        buttons: ['Restart Now', 'Later'],
-        defaultId: 0,
-        cancelId:  1,
-        icon: path.join(__dirname, 'icon.ico'),
-      }).then(({ response }) => {
-        if (response === 0) {
-          app.isQuitting = true;
-          autoUpdater.quitAndInstall();
-        }
-      });
+      // Tichá instalace bez NSIS okna — app se sama restartuje
+      autoUpdater.quitAndInstall(true, true); // isSilent=true, isForceRunAfter=true
     });
 
     autoUpdater.on('error', (err) => {
-      console.error('[UPDATER]', err.message);
+      logUpdate(`Update error: ${err.message}`);
     });
 
   } catch (e) {
@@ -77,8 +73,8 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const PORT        = 8080;
-const HOTKEY      = 'CommandOrControl+Shift+J';
-const APP_NAME    = 'JARVIS';
+let HOTKEY        = 'CommandOrControl+Shift+J';
+const APP_NAME    = 'JADE';
 const SERVER_URL  = `http://localhost:${PORT}/login.html`;
 
 let mainWindow = null;
@@ -208,7 +204,7 @@ function createWindow() {
     height: 780,
     minWidth: 900,
     minHeight: 600,
-    frame: false,           // Frameless — JARVIS HUD style
+    frame: false,           // Frameless — JADE HUD style
     transparent: false,
     backgroundColor: '#020810',
     webPreferences: {
@@ -217,7 +213,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'icon.ico'),
-    title: 'J.A.R.V.I.S.',
+    title: 'J.A.D.E.',
     show: false,
   });
 
@@ -271,11 +267,11 @@ function createTray() {
     : nativeImage.createEmpty();
 
   tray = new Tray(icon);
-  tray.setToolTip('J.A.R.V.I.S.');
+  tray.setToolTip('J.A.D.E.');
 
   const menu = Menu.buildFromTemplate([
     {
-      label: 'Show JARVIS',
+      label: 'Show JADE',
       click: () => toggleWindow()
     },
     { type: 'separator' },
@@ -295,7 +291,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Quit JARVIS',
+      label: 'Quit JADE',
       click: () => {
         app.isQuitting = true;
         app.quit();
@@ -385,6 +381,31 @@ app.whenReady().then(async () => {
     const ny = Math.round(y + (height - winH) / 2);
     mainWindow.setPosition(nx, ny, true);
     mainWindow.focus();
+  });
+
+  // IPC — version & updater
+  ipcMain.handle('get-version',  () => app.getVersion());
+  ipcMain.on('check-update', () => {
+    if (autoUpdater) autoUpdater.checkForUpdates();
+    else dialog.showMessageBox({ type: 'info', title: 'J.A.D.E.', message: 'Update check only works in packaged app.', buttons: ['OK'] });
+  });
+
+  // IPC — autostart
+  ipcMain.on('set-autostart', (e, enable) => setAutoStart(enable));
+  ipcMain.handle('get-autostart', () => app.getLoginItemSettings().openAtLogin);
+
+  // IPC — hotkey
+  ipcMain.handle('get-hotkey', () => HOTKEY);
+  ipcMain.handle('set-hotkey', (e, keys) => {
+    try {
+      globalShortcut.unregister(HOTKEY);
+      const ok = globalShortcut.register(keys, () => toggleWindow());
+      if (ok) { HOTKEY = keys; return { ok: true }; }
+      else { globalShortcut.register(HOTKEY, () => toggleWindow()); return { ok: false, error: 'Hotkey already in use' }; }
+    } catch(err) {
+      globalShortcut.register(HOTKEY, () => toggleWindow());
+      return { ok: false, error: err.message };
+    }
   });
 
   // Enable autostart

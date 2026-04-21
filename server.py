@@ -35,15 +35,17 @@ _load_env()
 
 ANTHROPIC_KEY        = os.environ.get('ANTHROPIC_KEY', '')
 # ── Proxy config ──────────────────────────────────────────────────────────────
-DEFAULT_PROXY_URL    = 'REPLACE_WITH_YOUR_RAILWAY_URL'  # baked-in default URL
-APP_SECRET           = 'REPLACE_WITH_YOUR_APP_SECRET'   # must match Railway APP_SECRET
+DEFAULT_PROXY_URL    = 'https://web-production-1f1b0.up.railway.app'  # baked-in default URL
+APP_SECRET           = 'Jarvis-2024-XkQ9mR'   # must match Railway APP_SECRET
 PROXY_URL            = os.environ.get('PROXY_URL', DEFAULT_PROXY_URL).rstrip('/')
 PROXY_CODE           = os.environ.get('PROXY_CODE', '')  # auto-filled after registration
 ELEVENLABS_KEY       = os.environ.get('ELEVENLABS_KEY', '')
 GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-SUPABASE_URL         = os.environ.get('SUPABASE_URL', '').rstrip('/')
-SUPABASE_KEY         = os.environ.get('SUPABASE_KEY', '')
+DEFAULT_SUPABASE_URL = 'https://beeeyljnprimatvzzzze.supabase.co'
+DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWV5bGpucHJpbWF0dnp6enplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjI5MTA5OSwiZXhwIjoyMDkxODY3MDk5fQ.f_tvEY59q8pyZNXlmXmM4fMd31bf7NAjMPO5PbmKi1E'
+SUPABASE_URL         = os.environ.get('SUPABASE_URL', DEFAULT_SUPABASE_URL).rstrip('/')
+SUPABASE_KEY         = os.environ.get('SUPABASE_KEY', DEFAULT_SUPABASE_KEY)
 GOOGLE_REDIRECT_URI  = f'http://localhost:{8080}/api/auth/google/callback'
 PORT        = 8080
 MEMORY_DIR  = 'memories'   # lokální cache
@@ -128,7 +130,7 @@ def supabase_save(email, mem):
         return
     try:
         url  = f'{SUPABASE_URL}/rest/v1/memories'
-        body = json.dumps({'email': email, 'data': mem, 'updated_at': datetime.datetime.utcnow().isoformat()}).encode()
+        body = json.dumps({'email': email, 'data': mem, 'updated_at': datetime.datetime.now(datetime.timezone.utc).isoformat()}).encode()
         headers = {**_supa_headers(), 'Prefer': 'resolution=merge-duplicates'}
         req  = urllib.request.Request(url, data=body, headers=headers, method='POST')
         urllib.request.urlopen(req, timeout=5)
@@ -177,7 +179,7 @@ def conv_load(conv_id, email):
 def conv_save(email, conv_id, title, messages):
     import uuid
     store = _conv_local_load(email)
-    now   = datetime.datetime.utcnow().isoformat()
+    now   = datetime.datetime.now(datetime.timezone.utc).isoformat()
     if not conv_id or conv_id not in store:
         conv_id = str(uuid.uuid4())
     store[conv_id] = {
@@ -310,7 +312,7 @@ def web_search(query, max_results=5):
     try:
         q   = urllib.parse.quote_plus(query)
         url = f'https://api.duckduckgo.com/?q={q}&format=json&no_html=1&skip_disambig=1'
-        req = urllib.request.Request(url, headers={'User-Agent': 'JARVIS/1.0'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'JADE/1.0'})
         with urllib.request.urlopen(req, timeout=8) as r:
             data = json.loads(r.read())
 
@@ -391,7 +393,7 @@ The user will never see this block — it is stripped automatically."""
 
 def build_system(base_system, mem):
     mem_str   = memory_to_prompt(mem)
-    mem_block = ('\n\n--- JARVIS MEMORY ---\n' + mem_str + '\n--- END MEMORY ---') if mem_str else ''
+    mem_block = ('\n\n--- JADE MEMORY ---\n' + mem_str + '\n--- END MEMORY ---') if mem_str else ''
     return base_system + mem_block + SEARCH_INSTRUCTIONS + MEM_INSTRUCTIONS
 
 def proxy_register(email: str) -> bool:
@@ -458,43 +460,81 @@ def _anthropic_url():
         }
     )
 
+def _reregister_proxy():
+    """Pokud proxy vrátí invalid code, smaž kód a znovu zaregistruj."""
+    global PROXY_CODE
+    session = load_session()
+    email = session.get('user', {}).get('email', '')
+    if not email:
+        return False
+    print('[PROXY] Access code invalid — re-registering...')
+    PROXY_CODE = ''
+    # Smaž z .env
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        with open(env_path, 'w', encoding='utf-8') as f:
+            f.writelines(l for l in lines if not l.startswith('PROXY_CODE='))
+    os.environ.pop('PROXY_CODE', None)
+    return proxy_register(email)
+
+def _is_invalid_code_error(e):
+    """Detekuje chybu 'Invalid or inactive access code' z proxy."""
+    try:
+        body = json.loads(e.read())
+        return 'invalid' in body.get('error', '').lower() or 'inactive' in body.get('error', '').lower()
+    except:
+        return False
+
 def call_anthropic(payload):
-    url, headers = _anthropic_url()
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers=headers,
-        method='POST'
-    )
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read())
+    for attempt in range(2):
+        url, headers = _anthropic_url()
+        req = urllib.request.Request(
+            url, data=json.dumps(payload).encode(), headers=headers, method='POST'
+        )
+        try:
+            with urllib.request.urlopen(req) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 401 and attempt == 0 and PROXY_CODE:
+                if _is_invalid_code_error(e):
+                    if _reregister_proxy():
+                        continue  # retry with new code
+            raise
 
 def stream_anthropic(payload):
     """Generátor: vrací textové chunky ze streaming Anthropic API."""
-    p = {**payload, 'stream': True}
-    url, headers = _anthropic_url()
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(p).encode(),
-        headers=headers,
-        method='POST'
-    )
-    with urllib.request.urlopen(req) as resp:
-        for raw in resp:
-            line = raw.decode('utf-8').rstrip('\r\n')
-            if not line.startswith('data: '):
-                continue
-            ds = line[6:]
-            if ds == '[DONE]':
-                break
-            try:
-                ev = json.loads(ds)
-                if ev.get('type') == 'content_block_delta':
-                    text = ev.get('delta', {}).get('text', '')
-                    if text:
-                        yield text
-            except:
-                pass
+    for attempt in range(2):
+        p = {**payload, 'stream': True}
+        url, headers = _anthropic_url()
+        req = urllib.request.Request(
+            url, data=json.dumps(p).encode(), headers=headers, method='POST'
+        )
+        try:
+            with urllib.request.urlopen(req) as resp:
+                for raw in resp:
+                    line = raw.decode('utf-8').rstrip('\r\n')
+                    if not line.startswith('data: '):
+                        continue
+                    ds = line[6:]
+                    if ds == '[DONE]':
+                        break
+                    try:
+                        ev = json.loads(ds)
+                        if ev.get('type') == 'content_block_delta':
+                            text = ev.get('delta', {}).get('text', '')
+                            if text:
+                                yield text
+                    except:
+                        pass
+            return  # úspěch — konec generátoru
+        except urllib.error.HTTPError as e:
+            if e.code == 401 and attempt == 0 and PROXY_CODE:
+                if _is_invalid_code_error(e):
+                    if _reregister_proxy():
+                        continue  # retry s novým kódem
+            raise
 
 # ── HTTP Handler ──────────────────────────────────────────────────────────────
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -619,7 +659,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path.split('?')[0].endswith(('.html', '.js', '.css')):
             import mimetypes
             clean = self.path.split('?')[0].lstrip('/')
-            fpath = os.path.join(os.getcwd(), clean)
+            fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), clean)
             if os.path.isfile(fpath):
                 with open(fpath, 'rb') as fh:
                     data = fh.read()
@@ -753,9 +793,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     f.writelines(lines)
                 # Reload globals
                 ANTHROPIC_KEY = os.environ.get('ANTHROPIC_KEY', '')
-                SUPABASE_URL  = os.environ.get('SUPABASE_URL', '').rstrip('/')
-                SUPABASE_KEY  = os.environ.get('SUPABASE_KEY', '')
-                PROXY_URL     = os.environ.get('PROXY_URL', '').rstrip('/')
+                SUPABASE_URL  = os.environ.get('SUPABASE_URL', DEFAULT_SUPABASE_URL).rstrip('/')
+                SUPABASE_KEY  = os.environ.get('SUPABASE_KEY', DEFAULT_SUPABASE_KEY)
+                PROXY_URL     = os.environ.get('PROXY_URL', DEFAULT_PROXY_URL).rstrip('/')
                 PROXY_CODE    = os.environ.get('PROXY_CODE', '')
                 self.send_json(200, {'ok': True})
             except Exception as e:
@@ -812,6 +852,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 ok = conv_delete(conv_id, email)
                 self.send_json(200 if ok else 500, {'ok': ok})
+
+        # ── Clear all conversations ───────────────────────────────────────────
+        elif self.path == '/api/conversations/clear':
+            user = get_current_user()
+            email = user.get('email') if user else None
+            if not email:
+                self.send_json(401, {'error': 'Not authenticated'})
+            else:
+                try:
+                    store = _conv_local_load(email)
+                    for conv_id in list(store.keys()):
+                        conv_delete(conv_id, email)
+                    # Also clear cloud if available
+                    if SUPABASE_URL and SUPABASE_KEY:
+                        try:
+                            req = urllib.request.Request(
+                                f'{SUPABASE_URL}/rest/v1/conversations?user_email=eq.{urllib.parse.quote(email)}',
+                                method='DELETE',
+                                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
+                            )
+                            urllib.request.urlopen(req, timeout=5)
+                        except: pass
+                    self.send_json(200, {'ok': True})
+                except Exception as e:
+                    self.send_json(500, {'error': str(e)})
+
+        # ── Clear memory ──────────────────────────────────────────────────────
+        elif self.path == '/api/memory/clear':
+            user = get_current_user()
+            email = user.get('email') if user else None
+            if not email:
+                self.send_json(401, {'error': 'Not authenticated'})
+            else:
+                try:
+                    save_memory({}, email)
+                    self.send_json(200, {'ok': True})
+                except Exception as e:
+                    self.send_json(500, {'error': str(e)})
 
         # ── Chat with search loop ─────────────────────────────────────────────
         elif self.path == '/api/chat':
@@ -1055,7 +1133,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(404); self.end_headers()
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-print(f"\n  J.A.R.V.I.S. server  ->  http://localhost:{PORT}/jarvis.html")
+print(f"\n  J.A.R.V.I.S. server  ->  http://localhost:{PORT}/jade.html")
 print(f"  Memory dir           ->  {os.path.abspath(MEMORY_DIR)}")
 print(f"  Web search           ->  DuckDuckGo (no API key needed)\n")
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J.A.R.V.I.S.</title>
+<title>J.A.D.E.</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
@@ -409,7 +409,7 @@
   }
 
   .message.user { align-items: flex-end; }
-  .message.jarvis { align-items: flex-start; }
+  .message.jade { align-items: flex-start; }
 
   .msg-label {
     font-family: 'Share Tech Mono', monospace;
@@ -430,7 +430,7 @@
     position: relative;
   }
 
-  .message.jarvis .msg-bubble {
+  .message.jade .msg-bubble {
     background: rgba(0,212,255,0.05);
     border: 1px solid var(--hud-border);
     color: var(--text-primary);
@@ -446,12 +446,12 @@
     border-right: 2px solid var(--hud-orange);
   }
 
-  /* ── Markdown uvnitř JARVIS bublin ───────────────────────────────────────── */
-  .message.jarvis .msg-bubble p { margin: 0 0 8px; }
-  .message.jarvis .msg-bubble p:last-child { margin-bottom: 0; }
-  .message.jarvis .msg-bubble h1,
-  .message.jarvis .msg-bubble h2,
-  .message.jarvis .msg-bubble h3 {
+  /* ── Markdown uvnitř JADE bublin ───────────────────────────────────────── */
+  .message.jade .msg-bubble p { margin: 0 0 8px; }
+  .message.jade .msg-bubble p:last-child { margin-bottom: 0; }
+  .message.jade .msg-bubble h1,
+  .message.jade .msg-bubble h2,
+  .message.jade .msg-bubble h3 {
     font-family: 'Orbitron', monospace;
     color: var(--hud-blue);
     font-size: 13px;
@@ -459,7 +459,7 @@
     margin: 12px 0 6px;
     text-transform: uppercase;
   }
-  .message.jarvis .msg-bubble code {
+  .message.jade .msg-bubble code {
     font-family: 'Share Tech Mono', monospace;
     font-size: 13px;
     background: rgba(0,212,255,0.08);
@@ -467,7 +467,7 @@
     padding: 1px 5px;
     color: var(--hud-blue);
   }
-  .message.jarvis .msg-bubble pre {
+  .message.jade .msg-bubble pre {
     background: rgba(0,0,0,0.45);
     border: 1px solid var(--hud-border);
     border-left: 2px solid var(--hud-blue);
@@ -476,30 +476,30 @@
     margin: 8px 0;
     border-radius: 0;
   }
-  .message.jarvis .msg-bubble pre code {
+  .message.jade .msg-bubble pre code {
     background: none;
     border: none;
     padding: 0;
     font-size: 12px;
     color: #e8f4ff;
   }
-  .message.jarvis .msg-bubble ul,
-  .message.jarvis .msg-bubble ol { padding-left: 20px; margin: 6px 0; }
-  .message.jarvis .msg-bubble li { margin: 3px 0; }
-  .message.jarvis .msg-bubble strong { color: var(--hud-blue); font-weight: 600; }
-  .message.jarvis .msg-bubble em    { color: rgba(232,244,255,0.75); font-style: italic; }
-  .message.jarvis .msg-bubble a     { color: var(--hud-blue); text-decoration: none; border-bottom: 1px solid rgba(0,212,255,0.3); }
-  .message.jarvis .msg-bubble blockquote {
+  .message.jade .msg-bubble ul,
+  .message.jade .msg-bubble ol { padding-left: 20px; margin: 6px 0; }
+  .message.jade .msg-bubble li { margin: 3px 0; }
+  .message.jade .msg-bubble strong { color: var(--hud-blue); font-weight: 600; }
+  .message.jade .msg-bubble em    { color: rgba(232,244,255,0.75); font-style: italic; }
+  .message.jade .msg-bubble a     { color: var(--hud-blue); text-decoration: none; border-bottom: 1px solid rgba(0,212,255,0.3); }
+  .message.jade .msg-bubble blockquote {
     border-left: 2px solid var(--hud-orange);
     padding-left: 10px;
     margin: 6px 0;
     color: rgba(232,244,255,0.65);
     font-style: italic;
   }
-  .message.jarvis .msg-bubble hr { border: none; border-top: 1px solid var(--hud-border); margin: 10px 0; }
-  .message.jarvis .msg-bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
-  .message.jarvis .msg-bubble th { border-bottom: 1px solid var(--hud-blue); padding: 4px 8px; color: var(--hud-blue); text-align: left; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; }
-  .message.jarvis .msg-bubble td { border-bottom: 1px solid rgba(0,212,255,0.1); padding: 4px 8px; }
+  .message.jade .msg-bubble hr { border: none; border-top: 1px solid var(--hud-border); margin: 10px 0; }
+  .message.jade .msg-bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+  .message.jade .msg-bubble th { border-bottom: 1px solid var(--hud-blue); padding: 4px 8px; color: var(--hud-blue); text-align: left; font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; }
+  .message.jade .msg-bubble td { border-bottom: 1px solid rgba(0,212,255,0.1); padding: 4px 8px; }
 
   /* Typing indicator */
   .typing-indicator {
@@ -638,14 +638,21 @@
     -webkit-app-region: no-drag;
   }
   .win-btn {
-    width: 12px; height: 12px;
+    width: 18px; height: 18px;
     border-radius: 50%;
     border: none;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0.8;
     transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.5);
+    line-height: 1;
   }
-  .win-btn:hover { opacity: 1; }
+  .win-btn:hover { opacity: 1; color: rgba(0,0,0,0.8); }
   .win-btn.close    { background: #ff5f57; }
   .win-btn.minimize { background: #febc2e; }
   .win-btn.maximize { background: #28c840; }
@@ -1251,7 +1258,7 @@
     font-size: 8px; color: rgba(0,212,255,0.4); letter-spacing: 1px;
     pointer-events: none;
   }
-  .display-map-jarvis {
+  .display-map-jade {
     position: absolute;
     background: rgba(0,212,255,0.15);
     border: 1px solid var(--hud-blue);
@@ -1261,8 +1268,8 @@
     box-sizing: border-box;
     transition: box-shadow 0.15s;
   }
-  .display-map-jarvis:active { cursor: grabbing; box-shadow: 0 0 20px rgba(0,212,255,0.6); }
-  .display-map-jarvis-label {
+  .display-map-jade:active { cursor: grabbing; box-shadow: 0 0 20px rgba(0,212,255,0.6); }
+  .display-map-jade-label {
     font-family: 'Share Tech Mono', monospace;
     font-size: 7px; color: var(--hud-blue); letter-spacing: 1px;
     pointer-events: none;
@@ -1334,8 +1341,8 @@
   <!-- Top bar -->
   <div class="top-bar">
     <div class="title-block">
-      <span class="title-main">J.A.R.V.I.S.</span>
-      <span class="title-sub" id="title-sub">Just A Rather Very Intelligent System · v4.1.7</span>
+      <span class="title-main">J.A.D.E.</span>
+      <span class="title-sub" id="title-sub">JDStudios Artificial Digital Executive</span>
     </div>
     <div class="status-row">
       <span><span class="status-dot"></span><span id="status-online">ONLINE</span></span>
@@ -1354,9 +1361,9 @@
         <span class="gear-icon">⚙</span>
       </button>
       <div class="win-controls">
-        <button class="win-btn minimize" onclick="if(window.electronAPI) window.electronAPI.minimize()"></button>
-        <button class="win-btn maximize" onclick="if(window.electronAPI) window.electronAPI.maximize()"></button>
-        <button class="win-btn close"    onclick="if(window.electronAPI) window.electronAPI.hide(); else window.close()"></button>
+        <button class="win-btn minimize" onclick="if(window.electronAPI) window.electronAPI.minimize()">&#8722;</button>
+        <button class="win-btn maximize" onclick="if(window.electronAPI) window.electronAPI.maximize()">&#9633;</button>
+        <button class="win-btn close"    onclick="if(window.electronAPI) window.electronAPI.hide(); else window.close()">&#10005;</button>
       </div>
     </div>
   </div>
@@ -1424,8 +1431,8 @@
   <!-- Center chat -->
   <div class="chat-area">
     <div class="chat-messages" id="chat-messages">
-      <div class="message jarvis">
-        <div class="msg-label">J.A.R.V.I.S.</div>
+      <div class="message jade">
+        <div class="msg-label">J.A.D.E.</div>
         <div class="msg-bubble">
           Good day. All systems are nominal. I am fully operational and ready to assist you, sir. What can I do for you today?
         </div>
@@ -1435,7 +1442,7 @@
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
-      <div class="typing-label" id="typing-label">JARVIS PROCESSING</div>
+      <div class="typing-label" id="typing-label">JADE PROCESSING</div>
     </div>
     <div class="typing-indicator" id="searching" style="border-left-color:var(--hud-orange)">
       <div class="typing-dot" style="background:var(--hud-orange)"></div>
@@ -1495,7 +1502,7 @@
 <div class="hist-panel" id="hist-panel">
   <!-- Top bar -->
   <div class="hist-panel-header">
-    <span class="hist-panel-title">⚙ J.A.R.V.I.S. · SETTINGS</span>
+    <span class="hist-panel-title">⚙ J.A.D.E. · SETTINGS</span>
     <button class="settings-close-btn" onclick="toggleHistoryPanel()">✕ CLOSE</button>
   </div>
 
@@ -1505,26 +1512,44 @@
     <!-- Left navigation -->
     <div class="settings-nav">
       <div class="settings-nav-section">SYSTEM</div>
-      <button class="settings-nav-item active" id="stab-btn-memory" onclick="showSettingsTab('memory')">
-        <span class="settings-nav-icon">🧠</span> MEMORY CORE
-      </button>
-      <button class="settings-nav-item" id="stab-btn-profile" onclick="showSettingsTab('profile')">
-        <span class="settings-nav-icon">👤</span> PROFILE
+      <button class="settings-nav-item" id="stab-btn-about" onclick="showSettingsTab('about')">
+        <span class="settings-nav-icon">ℹ️</span> ABOUT
       </button>
       <button class="settings-nav-item" id="stab-btn-ai" onclick="showSettingsTab('ai')">
         <span class="settings-nav-icon">🤖</span> AI MODEL
       </button>
+      <button class="settings-nav-item" id="stab-btn-appearance" onclick="showSettingsTab('appearance')">
+        <span class="settings-nav-icon">🎨</span> APPEARANCE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-chat" onclick="showSettingsTab('chat')">
+        <span class="settings-nav-icon">💬</span> CHAT
+      </button>
+      <button class="settings-nav-item" id="stab-btn-hotkey" onclick="showSettingsTab('hotkey')">
+        <span class="settings-nav-icon">⌨️</span> HOTKEY
+      </button>
       <button class="settings-nav-item" id="stab-btn-lang" onclick="showSettingsTab('lang')">
         <span class="settings-nav-icon">🌐</span> LANGUAGE
       </button>
+      <button class="settings-nav-item active" id="stab-btn-memory" onclick="showSettingsTab('memory')">
+        <span class="settings-nav-icon">🧠</span> MEMORY CORE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-notifications" onclick="showSettingsTab('notifications')">
+        <span class="settings-nav-icon">🔔</span> NOTIFICATIONS
+      </button>
+      <button class="settings-nav-item" id="stab-btn-privacy" onclick="showSettingsTab('privacy')">
+        <span class="settings-nav-icon">🔒</span> PRIVACY
+      </button>
+      <button class="settings-nav-item" id="stab-btn-profile" onclick="showSettingsTab('profile')">
+        <span class="settings-nav-icon">👤</span> PROFILE
+      </button>
+      <button class="settings-nav-item" id="stab-btn-shortcuts" onclick="showSettingsTab('shortcuts')">
+        <span class="settings-nav-icon">🖱️</span> SHORTCUTS
+      </button>
+      <button class="settings-nav-item" id="stab-btn-startup" onclick="showSettingsTab('startup')">
+        <span class="settings-nav-icon">⚡</span> STARTUP
+      </button>
       <button class="settings-nav-item" id="stab-btn-voice" onclick="showSettingsTab('voice')">
         <span class="settings-nav-icon">🎙️</span> VOICE
-      </button>
-      <button class="settings-nav-item" id="stab-btn-apikeys" onclick="showSettingsTab('apikeys')">
-        <span class="settings-nav-icon">🔑</span> API KEYS
-      </button>
-      <button class="settings-nav-item" id="stab-btn-display" onclick="showSettingsTab('display')">
-        <span class="settings-nav-icon">🖥️</span> DISPLAY
       </button>
     </div>
 
@@ -1635,10 +1660,10 @@
           <div class="ai-field">
             <div class="ai-label">PERSONALITY</div>
             <div class="ai-cards" id="ai-persona-cards">
-              <div class="ai-card selected" onclick="selectAICard('persona', 'jarvis', this)">
+              <div class="ai-card selected" onclick="selectAICard('persona', 'jade', this)">
                 <div class="ai-card-radio"></div>
                 <div class="ai-card-info">
-                  <div class="ai-card-name">JARVIS — Classic</div>
+                  <div class="ai-card-name">JADE — Classic</div>
                   <div class="ai-card-desc">Precise, calm, subtly witty. Tony Stark's AI butler</div>
                 </div>
               </div>
@@ -1710,7 +1735,7 @@
           <div class="voice-toggle-row">
             <div>
               <div class="voice-toggle-label">TEXT-TO-SPEECH</div>
-              <div class="voice-toggle-sub">JARVIS reads responses aloud</div>
+              <div class="voice-toggle-sub">JADE reads responses aloud</div>
             </div>
             <label class="hud-toggle">
               <input type="checkbox" id="voice-tts-enabled" checked onchange="saveVoiceConfig()"/>
@@ -1767,82 +1792,279 @@
         </div>
       </div>
 
-      <!-- API Keys tab -->
-      <div class="settings-tab" id="stab-apikeys">
-        <div class="settings-tab-title">API KEYS</div>
+
+      <!-- Appearance tab -->
+      <div class="settings-tab" id="stab-appearance">
+        <div class="settings-tab-title">APPEARANCE</div>
         <div class="profile-form" style="max-width:460px">
 
-          <!-- Proxy status (auto-registered, no user input needed) -->
-          <div class="profile-section-label">AI CONNECTION</div>
-
+          <div class="profile-section-label">UI ZOOM</div>
           <div class="profile-field">
-            <label class="profile-label">
-              Shared Server
-              <span id="proxy-badge" style="float:right;font-size:8px;letter-spacing:1px"></span>
-            </label>
-            <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">
-              Automaticky aktivováno při přihlášení — nepotřebuješ vlastní API klíč.
-            </span>
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+              <button class="voice-test-btn" onclick="changeZoom(-5)">A−</button>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:11px;
+                           color:var(--hud-blue);min-width:60px;text-align:center"
+                    id="font-size-label">100%</span>
+              <button class="voice-test-btn" onclick="changeZoom(5)">A+</button>
+              <button class="voice-test-btn" onclick="resetZoom()" style="margin-left:8px">RESET</button>
+            </div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
+              Rozsah: 70% — 150%. Škáluje celé rozhraní. Uloží se automaticky.
+            </div>
           </div>
 
           <hr class="profile-divider"/>
-          <div class="profile-section-label">OWN API KEY (optional override)</div>
-
-          <div class="profile-field">
-            <label class="profile-label">
-              Anthropic API Key
-              <span id="anthropic-badge" style="float:right;font-size:8px;letter-spacing:1px"></span>
-            </label>
-            <input class="profile-input" id="key-anthropic" type="password"
-                   placeholder="sk-ant-api03-..."
-                   autocomplete="off"/>
-            <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">
-              Získej na <span style="color:var(--hud-blue)">console.anthropic.com</span> → API Keys
-            </span>
+          <div class="profile-section-label">COLOR THEME</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+            <button class="voice-test-btn theme-btn" onclick="setTheme('blue')"   data-theme="blue"   style="border-color:#00d4ff;color:#00d4ff">● BLUE</button>
+            <button class="voice-test-btn theme-btn" onclick="setTheme('green')"  data-theme="green"  style="border-color:#00ff88;color:#00ff88">● GREEN</button>
+            <button class="voice-test-btn theme-btn" onclick="setTheme('purple')" data-theme="purple" style="border-color:#b44dff;color:#b44dff">● PURPLE</button>
+            <button class="voice-test-btn theme-btn" onclick="setTheme('red')"    data-theme="red"    style="border-color:#ff4444;color:#ff4444">● RED</button>
+            <button class="voice-test-btn theme-btn" onclick="setTheme('amber')"  data-theme="amber"  style="border-color:#ffaa00;color:#ffaa00">● AMBER</button>
           </div>
 
           <hr class="profile-divider"/>
-          <div class="profile-section-label">OPTIONAL — CLOUD SYNC</div>
-
-          <div class="profile-field">
-            <label class="profile-label">
-              Supabase URL
-              <span id="supabase-badge" style="float:right;font-size:8px;letter-spacing:1px"></span>
+          <div class="profile-section-label">HUD PANELS</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
+              Levý panel (reaktor, čas, historie)
+              <input type="checkbox" id="panel-left-toggle" checked onchange="togglePanel('left', this.checked)"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
             </label>
-            <input class="profile-input" id="key-supabase-url" type="text"
-                   placeholder="https://xxxx.supabase.co"
-                   autocomplete="off"/>
-          </div>
-
-          <div class="profile-field">
-            <label class="profile-label">Supabase Service Key</label>
-            <input class="profile-input" id="key-supabase-key" type="password"
-                   placeholder="eyJhbGci..."
-                   autocomplete="off"/>
-            <span style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">
-              Supabase → Project Settings → API → service_role key (pro cloud sync paměti)
-            </span>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:16px;margin-top:4px">
-            <button class="profile-save-btn" onclick="saveApiKeys()">SAVE KEYS</button>
-            <span class="profile-status" id="apikeys-status"></span>
-          </div>
-
-          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.25);margin-top:8px;line-height:1.8">
-            Klíče jsou uloženy lokálně v souboru .env — nikdy se neodesílají na jiné servery než ty, které zadáš.
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
+              Pravý panel (aktivita, poloha)
+              <input type="checkbox" id="panel-right-toggle" checked onchange="togglePanel('right', this.checked)"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
           </div>
 
         </div>
       </div>
 
-      <!-- Display tab -->
-      <div class="settings-tab" id="stab-display">
-        <div class="settings-tab-title">DISPLAY · WINDOW PLACEMENT</div>
-        <div id="display-list" style="display:flex;flex-direction:column;gap:10px;max-width:480px">
-          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px">
-            DETECTING DISPLAYS...
+      <!-- Chat tab -->
+      <div class="settings-tab" id="stab-chat">
+        <div class="settings-tab-title">CHAT</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div class="profile-section-label">BEHAVIOR</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <span>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-primary)">Zobrazovat časová razítka</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">Čas u každé zprávy</div>
+              </span>
+              <input type="checkbox" id="chat-timestamps" onchange="saveChatPrefs()"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <span>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-primary)">Automaticky ukládat konverzace</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">Ukládá každou zprávu průběžně</div>
+              </span>
+              <input type="checkbox" id="chat-autosave" checked onchange="saveChatPrefs()"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <span>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-primary)">Úvodní pozdrav po přihlášení</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">JADE automaticky pozdraví při startu</div>
+              </span>
+              <input type="checkbox" id="chat-greeting" checked onchange="saveChatPrefs()"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
           </div>
+
+        </div>
+      </div>
+
+      <!-- Hotkey tab -->
+      <div class="settings-tab" id="stab-hotkey">
+        <div class="settings-tab-title">HOTKEY</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div class="profile-section-label">GLOBAL SHORTCUT</div>
+          <div class="profile-field">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.8">
+              Klávesová zkratka pro zobrazení / skrytí J.A.D.E. odkudkoli.
+            </span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+            <input class="profile-input" id="hotkey-input" readonly placeholder="Stiskni klávesovou zkratku..."
+                   style="cursor:pointer;max-width:260px"
+                   onkeydown="captureHotkey(event)" onfocus="this.value=''; this.placeholder='Stiskni zkratku...'"
+                   onblur="loadHotkeyTab()"/>
+            <button class="profile-save-btn" onclick="saveHotkey()">SAVE</button>
+          </div>
+          <span class="profile-status" id="hotkey-status"></span>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim);margin-top:8px">
+            Příklady: Ctrl+Shift+J &nbsp;·&nbsp; Alt+Space &nbsp;·&nbsp; Ctrl+Alt+J
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Notifications tab -->
+      <div class="settings-tab" id="stab-notifications">
+        <div class="settings-tab-title">NOTIFICATIONS</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div class="profile-section-label">DESKTOP</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <span>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-primary)">Desktop notifikace</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">Upozornění při odpovědi JADE (pokud je minimalizovaná)</div>
+              </span>
+              <input type="checkbox" id="notif-desktop" onchange="saveNotifPrefs()"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">SOUND</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <span>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-primary)">Zvuk při odpovědi</div>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim)">Krátký tón po dokončení odpovědi</div>
+              </span>
+              <input type="checkbox" id="notif-sound" onchange="saveNotifPrefs()"
+                     style="width:14px;height:14px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div style="display:flex;gap:10px">
+            <button class="voice-test-btn" onclick="testNotification()">TEST NOTIFICATION</button>
+            <button class="voice-test-btn" onclick="testSound()">TEST SOUND</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Privacy tab -->
+      <div class="settings-tab" id="stab-privacy">
+        <div class="settings-tab-title">PRIVACY &amp; DATA</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div class="profile-section-label">CONVERSATION HISTORY</div>
+          <div class="profile-field">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.8">
+              Smaže všechny uložené konverzace lokálně i v cloudu. Tato akce je nevratná.
+            </span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
+            <button class="profile-save-btn" style="background:rgba(255,60,60,0.08);border-color:rgba(255,60,60,0.4);color:#ff5555"
+                    onclick="clearHistory()">🗑 CLEAR HISTORY</button>
+            <span class="profile-status" id="privacy-history-status"></span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">MEMORY CORE</div>
+          <div class="profile-field">
+            <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.8">
+              Resetuje veškerou paměť (profil, zájmy, informace). Tato akce je nevratná.
+            </span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
+            <button class="profile-save-btn" style="background:rgba(255,60,60,0.08);border-color:rgba(255,60,60,0.4);color:#ff5555"
+                    onclick="clearMemory()">🧠 CLEAR MEMORY</button>
+            <span class="profile-status" id="privacy-memory-status"></span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">EXPORT</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="profile-save-btn" onclick="exportMemory()">⬇ EXPORT MEMORY JSON</button>
+            <span class="profile-status" id="privacy-export-status"></span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Startup tab -->
+      <div class="settings-tab" id="stab-startup">
+        <div class="settings-tab-title">STARTUP &amp; BEHAVIOR</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div class="profile-section-label">SYSTEM STARTUP</div>
+          <div class="profile-field">
+            <label class="profile-label" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+              <span>Spustit J.A.D.E. při startu Windows</span>
+              <input type="checkbox" id="startup-autostart" onchange="setAutoStart(this.checked)"
+                     style="width:16px;height:16px;accent-color:var(--hud-blue);cursor:pointer"/>
+            </label>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
+              J.A.D.E. se automaticky spustí a minimalizuje do systray.
+            </span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">WINDOW BEHAVIOR</div>
+          <div class="profile-field">
+            <label class="profile-label" style="display:flex;align-items:center;justify-content:space-between">
+              <span>Zavřít = minimalizovat do systray</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--hud-green)">✓ ALWAYS ON</span>
+            </label>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
+              Klikem na × se J.A.D.E. schová do systray. Pro úplné ukončení použij systray → Quit.
+            </span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">GLOBAL HOTKEY</div>
+          <div class="profile-field">
+            <label class="profile-label" style="display:flex;align-items:center;justify-content:space-between">
+              <span>Zobrazit / skrýt okno</span>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--hud-blue);
+                           background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);
+                           padding:2px 8px;border-radius:3px">Ctrl+Shift+J</span>
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Shortcuts tab -->
+      <div class="settings-tab" id="stab-shortcuts">
+        <div class="settings-tab-title">KEYBOARD SHORTCUTS</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div class="profile-section-label">CHAT</div>
+          <div id="shortcuts-list" style="display:flex;flex-direction:column;gap:0">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- About tab -->
+      <div class="settings-tab" id="stab-about">
+        <div class="settings-tab-title">ABOUT J.A.D.E.</div>
+        <div class="profile-form" style="max-width:460px">
+
+          <div style="text-align:center;padding:16px 0 24px">
+            <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;
+                        color:var(--hud-blue);letter-spacing:8px;
+                        text-shadow:0 0 20px rgba(0,212,255,0.6)">J.A.D.E.</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);
+                        letter-spacing:2px;margin-top:6px">JDSTUDIOS ARTIFICIAL DIGITAL EXECUTIVE</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--hud-blue);
+                        margin-top:12px" id="about-version">VERSION —</div>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div class="profile-section-label">UPDATES</div>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
+            <button class="profile-save-btn" onclick="checkUpdate()">🔄 CHECK FOR UPDATES</button>
+            <span class="profile-status" id="about-update-status"></span>
+          </div>
+
+          <hr class="profile-divider"/>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.2);line-height:2">
+            BUILT BY JDSTUDIOS &nbsp;·&nbsp; POWERED BY ANTHROPIC<br>
+            © 2026 JDSTUDIOS — ALL SYSTEMS NOMINAL
+          </div>
+
         </div>
       </div>
 
@@ -1958,7 +2180,7 @@
     el.innerHTML = html || '<div class="memory-empty">No memories yet.</div>';
   }
 
-  // Load memory on start and after each JARVIS reply
+  // Load memory on start and after each JADE reply
   loadMemory();
 
   // ─── Conversation History ─────────────────────────────────────────────────
@@ -1986,31 +2208,36 @@
     const btnEl = document.getElementById('stab-btn-' + tab);
     if (tabEl) tabEl.classList.add('active');
     if (btnEl) btnEl.classList.add('active');
-    if (tab === 'display') loadDisplayList();
-    if (tab === 'profile') loadProfileForm();
-    if (tab === 'ai')      loadAIConfig();
-    if (tab === 'voice')   loadVoiceTab();
-    if (tab === 'apikeys') loadApiKeysTab();
+    if (tab === 'profile')       loadProfileForm();
+    if (tab === 'ai')            loadAIConfig();
+    if (tab === 'voice')         loadVoiceTab();
+    if (tab === 'appearance')    loadAppearanceTab();
+    if (tab === 'chat')          loadChatTab();
+    if (tab === 'hotkey')        loadHotkeyTab();
+    if (tab === 'notifications') loadNotifTab();
+    if (tab === 'startup')       loadStartupTab();
+    if (tab === 'shortcuts')     loadShortcutsTab();
+    if (tab === 'about')         loadAboutTab();
   }
 
   // ─── AI Config ────────────────────────────────────────────────────────────
   const AI_PERSONAS = {
-    jarvis:    'You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark\'s AI. You are highly intelligent, calm, precise, and subtly witty. You speak efficiently and never verbosely. You occasionally address the user with the appropriate honorific in the active language. You refer to yourself as JARVIS. Keep responses concise and sharp. You are running inside a holographic HUD.',
-    casual:    'You are JARVIS, a friendly and helpful AI assistant. Be warm, conversational, and use the user\'s first name. Keep things relaxed but still helpful and accurate.',
-    focused:   'You are JARVIS, a highly efficient AI. Be extremely concise. No greetings, no filler words. Answer directly. If a one-sentence answer suffices, give one sentence.',
-    humorous:  'You are JARVIS, a witty AI with a sharp sense of humor and dry British sarcasm. You are still helpful and accurate, but you enjoy a good quip. Think Jarvis meets Blackadder.',
+    jade:    'You are J.A.D.E. (JDStudios Artificial Digital Executive), an advanced AI assistant created by JDStudios. You are highly intelligent, calm, precise, and subtly witty. You speak efficiently and never verbosely. You occasionally address the user with the appropriate honorific in the active language. You refer to yourself as JADE. Keep responses concise and sharp. You are running inside a holographic HUD.',
+    casual:    'You are JADE, a friendly and helpful AI assistant. Be warm, conversational, and use the user\'s first name. Keep things relaxed but still helpful and accurate.',
+    focused:   'You are JADE, a highly efficient AI. Be extremely concise. No greetings, no filler words. Answer directly. If a one-sentence answer suffices, give one sentence.',
+    humorous:  'You are JADE, a witty AI with a sharp sense of humor and dry British sarcasm. You are still helpful and accurate, but you enjoy a good quip. Think Jarvis meets Blackadder.',
   };
 
   let aiConfig = {
     model:        'claude-sonnet-4-20250514',
     max_tokens:   1000,
-    persona:      'jarvis',
+    persona:      'jade',
     custom_prompt: '',
   };
 
   function loadAIConfig() {
     try {
-      const saved = JSON.parse(localStorage.getItem('jarvis_ai_config') || '{}');
+      const saved = JSON.parse(localStorage.getItem('jade_ai_config') || '{}');
       Object.assign(aiConfig, saved);
     } catch {}
 
@@ -2047,14 +2274,14 @@
   function saveAIConfig() {
     const promptEl = document.getElementById('ai-custom-prompt');
     if (promptEl) aiConfig.custom_prompt = promptEl.value.trim();
-    localStorage.setItem('jarvis_ai_config', JSON.stringify(aiConfig));
+    localStorage.setItem('jade_ai_config', JSON.stringify(aiConfig));
     const st = document.getElementById('ai-status');
     st.textContent = '✓ SAVED'; st.className = 'profile-status ok';
     setTimeout(() => { st.textContent = ''; }, 2500);
   }
 
   function getSystemPrompt(langInstruction) {
-    const base = AI_PERSONAS[aiConfig.persona] || AI_PERSONAS.jarvis;
+    const base = AI_PERSONAS[aiConfig.persona] || AI_PERSONAS.jade;
     const custom = aiConfig.custom_prompt ? '\n\n' + aiConfig.custom_prompt : '';
     const today   = new Date().toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
     const timeNow = new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
@@ -2065,7 +2292,7 @@
   let voiceConfig = { ttsEnabled: true, sttEnabled: true, rate: 0.92, pitch: 0.82, voiceName: '' };
 
   function loadVoiceConfig() {
-    try { Object.assign(voiceConfig, JSON.parse(localStorage.getItem('jarvis_voice_config') || '{}')); } catch {}
+    try { Object.assign(voiceConfig, JSON.parse(localStorage.getItem('jade_voice_config') || '{}')); } catch {}
   }
 
   function saveVoiceConfig() {
@@ -2074,7 +2301,7 @@
     voiceConfig.rate       = parseFloat(document.getElementById('voice-rate')?.value  || 0.92);
     voiceConfig.pitch      = parseFloat(document.getElementById('voice-pitch')?.value || 0.82);
     voiceConfig.voiceName  = document.getElementById('voice-select')?.value || '';
-    localStorage.setItem('jarvis_voice_config', JSON.stringify(voiceConfig));
+    localStorage.setItem('jade_voice_config', JSON.stringify(voiceConfig));
     // Update mic button visibility
     const micBtn = document.getElementById('mic-btn');
     if (micBtn) micBtn.style.display = voiceConfig.sttEnabled ? '' : 'none';
@@ -2102,7 +2329,7 @@
   }
 
   function testVoice() {
-    const testMsg = currentLang.greeting || 'J.A.R.V.I.S. voice system online. All parameters nominal.';
+    const testMsg = currentLang.greeting || 'J.A.D.E. voice system online. All parameters nominal.';
     browserSpeak(testMsg);
   }
 
@@ -2164,170 +2391,322 @@
     }
   }
 
-  async function loadDisplayList() {
-    const container = document.getElementById('display-list');
-    if (!container) return;
-    if (!window.electronAPI?.getDisplays) {
-      container.innerHTML = `<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">
-        DISPLAY CONTROL REQUIRES ELECTRON RUNTIME.</div>`;
-      return;
+
+
+  // ─── Appearance ───────────────────────────────────────────────────────────
+  let currentZoom = parseInt(localStorage.getItem('jade-zoom') || '100');
+
+  function applyZoom(pct) {
+    currentZoom = Math.min(150, Math.max(70, pct));
+    if (window.electronAPI?.setZoom) {
+      window.electronAPI.setZoom(currentZoom / 100);
+    } else {
+      document.body.style.zoom = currentZoom + '%'; // fallback pro dev bez Electronu
     }
+    localStorage.setItem('jade-zoom', currentZoom);
+  }
 
-    const [displays, winPos] = await Promise.all([
-      window.electronAPI.getDisplays(),
-      window.electronAPI.getWinPosition(),
-    ]);
+  function loadAppearanceTab() {
+    const lbl = document.getElementById('font-size-label');
+    if (lbl) lbl.textContent = currentZoom + '%';
+    // Highlight active theme
+    const saved = localStorage.getItem('jade-theme') || 'blue';
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      const t = THEMES[b.dataset.theme];
+      b.style.fontWeight = b.dataset.theme === saved ? '700' : '400';
+      b.style.boxShadow  = b.dataset.theme === saved ? `0 0 8px ${t?.main}` : '';
+    });
+    // Panel checkboxes
+    document.getElementById('panel-left-toggle').checked  = localStorage.getItem('jade-panel-left')  !== '0';
+    document.getElementById('panel-right-toggle').checked = localStorage.getItem('jade-panel-right') !== '0';
+  }
 
-    // ── Build display map ──────────────────────────────────────
-    // Find bounding box of all displays in screen coordinates
-    const minX = Math.min(...displays.map(d => d.x));
-    const minY = Math.min(...displays.map(d => d.y));
-    const maxX = Math.max(...displays.map(d => d.x + d.width));
-    const maxY = Math.max(...displays.map(d => d.y + d.height));
-    const totalW = maxX - minX;
-    const totalH = maxY - minY;
+  function changeZoom(delta) {
+    applyZoom(currentZoom + delta);
+    const lbl = document.getElementById('font-size-label');
+    if (lbl) lbl.textContent = currentZoom + '%';
+  }
 
-    const MAP_W = 480, MAP_H = Math.round(MAP_W * totalH / totalW);
-    const scale = MAP_W / totalW;
+  function resetZoom() {
+    applyZoom(100);
+    const lbl = document.getElementById('font-size-label');
+    if (lbl) lbl.textContent = '100%';
+  }
 
-    // Scaled JARVIS window size (assume 1280×780 logical)
-    const WIN_W = Math.round(1280 * scale);
-    const WIN_H = Math.round(780  * scale);
-    const jarvisLeft = Math.round((winPos[0] - minX) * scale);
-    const jarvisTop  = Math.round((winPos[1] - minY) * scale);
+  // Aplikuj uložený zoom hned při načtení
+  applyZoom(currentZoom);
 
-    const screensHtml = displays.map(d => {
-      const l = Math.round((d.x - minX) * scale);
-      const t = Math.round((d.y - minY) * scale);
-      const w = Math.round(d.width  * scale);
-      const h = Math.round(d.height * scale);
-      return `<div class="display-map-screen" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px">
-        <div class="display-map-screen-label">${d.label}</div>
-      </div>`;
-    }).join('');
+  // ── Color themes ──────────────────────────────────────────────────────────
+  const THEMES = {
+    blue:   { main: '#00d4ff', glow: 'rgba(0,212,255,0.4)', dim: 'rgba(0,212,255,0.15)' },
+    green:  { main: '#00ff88', glow: 'rgba(0,255,136,0.4)', dim: 'rgba(0,255,136,0.15)' },
+    purple: { main: '#b44dff', glow: 'rgba(180,77,255,0.4)', dim: 'rgba(180,77,255,0.15)' },
+    red:    { main: '#ff4444', glow: 'rgba(255,68,68,0.4)',  dim: 'rgba(255,68,68,0.15)' },
+    amber:  { main: '#ffaa00', glow: 'rgba(255,170,0,0.4)', dim: 'rgba(255,170,0,0.15)' },
+  };
 
-    container.innerHTML = `
-      <div class="display-map-wrap" id="display-map" style="width:${MAP_W}px;height:${MAP_H}px">
-        ${screensHtml}
-        <div class="display-map-jarvis" id="map-jarvis"
-             style="left:${jarvisLeft}px;top:${jarvisTop}px;width:${WIN_W}px;height:${WIN_H}px">
-          <div class="display-map-jarvis-label">J.A.R.V.I.S.</div>
-        </div>
+  function setTheme(name) {
+    const t = THEMES[name];
+    if (!t) return;
+    const r = document.documentElement;
+    r.style.setProperty('--hud-blue',      t.main);
+    r.style.setProperty('--hud-blue-glow', t.glow);
+    r.style.setProperty('--hud-blue-dim',  t.dim);
+    r.style.setProperty('--hud-border',    t.glow.replace('0.4', '0.3'));
+    r.style.setProperty('--text-dim',      t.glow.replace('0.4', '0.6'));
+    localStorage.setItem('jade-theme', name);
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      b.style.fontWeight = b.dataset.theme === name ? '700' : '400';
+      b.style.boxShadow  = b.dataset.theme === name ? `0 0 8px ${t.main}` : '';
+    });
+  }
+
+  // Aplikuj uložené téma hned při načtení
+  (function() {
+    const saved = localStorage.getItem('jade-theme');
+    if (saved && THEMES[saved]) setTheme(saved);
+  })();
+
+  // ── HUD panels ────────────────────────────────────────────────────────────
+  function togglePanel(side, visible) {
+    const sel = side === 'left' ? '.panel-left' : '.panel-right';
+    document.querySelectorAll(sel).forEach(el => {
+      el.style.display = visible ? '' : 'none';
+    });
+    localStorage.setItem('jade-panel-' + side, visible ? '1' : '0');
+  }
+
+  // Aplikuj uložený stav panelů
+  (function() {
+    ['left','right'].forEach(side => {
+      const val = localStorage.getItem('jade-panel-' + side);
+      if (val === '0') togglePanel(side, false);
+    });
+  })();
+
+  // ── Chat prefs ────────────────────────────────────────────────────────────
+  function loadChatTab() {
+    document.getElementById('chat-timestamps').checked = localStorage.getItem('jade-timestamps') === '1';
+    document.getElementById('chat-autosave').checked   = localStorage.getItem('jade-autosave')   !== '0';
+    document.getElementById('chat-greeting').checked   = localStorage.getItem('jade-greeting')   !== '0';
+    // Sync panel checkboxes
+    document.getElementById('panel-left-toggle').checked  = localStorage.getItem('jade-panel-left')  !== '0';
+    document.getElementById('panel-right-toggle').checked = localStorage.getItem('jade-panel-right') !== '0';
+  }
+
+  function saveChatPrefs() {
+    localStorage.setItem('jade-timestamps', document.getElementById('chat-timestamps').checked ? '1' : '0');
+    localStorage.setItem('jade-autosave',   document.getElementById('chat-autosave').checked   ? '1' : '0');
+    localStorage.setItem('jade-greeting',   document.getElementById('chat-greeting').checked   ? '1' : '0');
+  }
+
+  // ── Hotkey ────────────────────────────────────────────────────────────────
+  let capturedHotkey = '';
+
+  async function loadHotkeyTab() {
+    const current = await window.electronAPI?.getHotkey?.() || 'Ctrl+Shift+J';
+    const input = document.getElementById('hotkey-input');
+    if (input) { input.value = current; input.placeholder = 'Stiskni zkratku...'; }
+    capturedHotkey = current;
+  }
+
+  function captureHotkey(e) {
+    e.preventDefault();
+    const parts = [];
+    if (e.ctrlKey)  parts.push('Ctrl');
+    if (e.altKey)   parts.push('Alt');
+    if (e.shiftKey) parts.push('Shift');
+    const key = e.key;
+    if (!['Control','Alt','Shift','Meta'].includes(key)) {
+      parts.push(key.length === 1 ? key.toUpperCase() : key);
+    }
+    if (parts.length > 1) {
+      capturedHotkey = parts.join('+');
+      document.getElementById('hotkey-input').value = capturedHotkey;
+    }
+  }
+
+  async function saveHotkey() {
+    const st = document.getElementById('hotkey-status');
+    if (!capturedHotkey) return;
+    const electronKey = capturedHotkey
+      .replace('Ctrl', 'CommandOrControl')
+      .replace('Alt', 'Alt')
+      .replace('Shift', 'Shift');
+    const res = await window.electronAPI?.setHotkey?.(electronKey);
+    if (res?.ok) {
+      st.textContent = '✓ SAVED'; st.className = 'profile-status ok';
+    } else {
+      st.textContent = '✗ ' + (res?.error || 'FAILED'); st.className = 'profile-status err';
+    }
+    setTimeout(() => { st.textContent = ''; }, 3000);
+  }
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  function loadNotifTab() {
+    document.getElementById('notif-desktop').checked = localStorage.getItem('jade-notif-desktop') === '1';
+    document.getElementById('notif-sound').checked   = localStorage.getItem('jade-notif-sound')   === '1';
+  }
+
+  function saveNotifPrefs() {
+    localStorage.setItem('jade-notif-desktop', document.getElementById('notif-desktop').checked ? '1' : '0');
+    localStorage.setItem('jade-notif-sound',   document.getElementById('notif-sound').checked   ? '1' : '0');
+  }
+
+  function testNotification() {
+    if (Notification.permission === 'granted') {
+      new Notification('J.A.D.E.', { body: 'Systémy jsou připraveny. Test notifikace.', icon: '' });
+    } else {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') testNotification();
+      });
+    }
+  }
+
+  function testSound() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(); osc.stop(ctx.currentTime + 0.4);
+  }
+
+  // Funkce pro přehrání zvuku po odpovědi (voláno z chat handleru)
+  function playResponseSound() {
+    if (localStorage.getItem('jade-notif-sound') !== '1') return;
+    testSound();
+  }
+
+  // Funkce pro desktop notifikaci po odpovědi
+  function showResponseNotification(text) {
+    if (localStorage.getItem('jade-notif-desktop') !== '1') return;
+    if (document.hasFocus()) return; // jen když je okno na pozadí
+    if (Notification.permission === 'granted') {
+      new Notification('J.A.D.E.', { body: text.slice(0, 100) });
+    }
+  }
+
+  // ─── Privacy ──────────────────────────────────────────────────────────────
+  async function clearHistory() {
+    if (!confirm('Opravdu smazat VŠECHNY konverzace? Tato akce je nevratná.')) return;
+    const st = document.getElementById('privacy-history-status');
+    st.textContent = ''; st.className = 'profile-status';
+    try {
+      const r = await fetch('/api/conversations/clear', { method: 'POST' });
+      if (!r.ok) throw new Error('Server error');
+      history.length = 0;
+      renderHistoryList([]);
+      st.textContent = '✓ CLEARED'; st.className = 'profile-status ok';
+      setTimeout(() => { st.textContent = ''; }, 3000);
+    } catch(e) {
+      st.textContent = '✗ FAILED'; st.className = 'profile-status err';
+    }
+  }
+
+  async function clearMemory() {
+    if (!confirm('Opravdu smazat veškerou paměť? Profil a informace budou ztraceny.')) return;
+    const st = document.getElementById('privacy-memory-status');
+    st.textContent = ''; st.className = 'profile-status';
+    try {
+      const r = await fetch('/api/memory/clear', { method: 'POST' });
+      if (!r.ok) throw new Error('Server error');
+      memoryCache = {};
+      renderMemory();
+      st.textContent = '✓ CLEARED'; st.className = 'profile-status ok';
+      setTimeout(() => { st.textContent = ''; }, 3000);
+    } catch(e) {
+      st.textContent = '✗ FAILED'; st.className = 'profile-status err';
+    }
+  }
+
+  async function exportMemory() {
+    const st = document.getElementById('privacy-export-status');
+    try {
+      const r = await fetch('/api/memory');
+      const data = await r.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = 'jade-memory.json'; a.click();
+      URL.revokeObjectURL(url);
+      st.textContent = '✓ EXPORTED'; st.className = 'profile-status ok';
+      setTimeout(() => { st.textContent = ''; }, 3000);
+    } catch(e) {
+      st.textContent = '✗ FAILED'; st.className = 'profile-status err';
+    }
+  }
+
+  // ─── Startup ──────────────────────────────────────────────────────────────
+  async function loadStartupTab() {
+    const cb = document.getElementById('startup-autostart');
+    if (!cb || !window.electronAPI?.getAutoStart) return;
+    try {
+      cb.checked = await window.electronAPI.getAutoStart();
+    } catch(e) { console.warn('[STARTUP]', e); }
+  }
+
+  function setAutoStart(enable) {
+    window.electronAPI?.setAutoStart(enable);
+  }
+
+  // ─── Shortcuts ────────────────────────────────────────────────────────────
+  function loadShortcutsTab() {
+    const shortcuts = [
+      { keys: 'Enter',          desc: 'Odeslat zprávu' },
+      { keys: 'Shift + Enter',  desc: 'Nový řádek ve zprávě' },
+      { keys: 'Ctrl + Shift + J', desc: 'Zobrazit / skrýt J.A.D.E. (globálně)' },
+      { keys: 'Ctrl + N',       desc: 'Nová konverzace' },
+      { keys: 'Escape',         desc: 'Zavřít nastavení' },
+    ];
+    const container = document.getElementById('shortcuts-list');
+    if (!container) return;
+    container.innerHTML = shortcuts.map(s => `
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:10px 0;border-bottom:1px solid rgba(0,212,255,0.06)">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">${s.desc}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--hud-blue);
+                     background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);
+                     padding:3px 8px;border-radius:3px;white-space:nowrap">${s.keys}</span>
       </div>
-      ${displays.map(d => `
-        <div class="display-card ${d.current ? 'current' : ''}">
-          <div class="display-card-info">
-            <div class="display-card-label">${d.label}</div>
-            <div class="display-card-res">${d.width} × ${d.height} px &nbsp;·&nbsp; [${d.x}, ${d.y}]</div>
-            ${d.current ? '<div class="display-card-badge">▶ JARVIS IS HERE</div>' : ''}
-          </div>
-          <button class="display-move-btn ${d.current ? 'current-btn' : ''}"
-                  ${d.current ? 'disabled' : ''}
-                  onclick="moveToDisplay(${d.id})">
-            ${d.current ? '✓ CURRENT' : '→ MOVE HERE'}
-          </button>
-        </div>
-      `).join('')}
-    `;
-
-    // ── Drag logic on the map ──────────────────────────────────
-    const jarvisEl = document.getElementById('map-jarvis');
-    if (!jarvisEl) return;
-
-    let dragging = false;
-    let startMouseX, startMouseY, startJarvisX, startJarvisY;
-    // Real window position at drag start (screen coords)
-    let startWinX, startWinY;
-
-    jarvisEl.addEventListener('mousedown', async e => {
-      e.preventDefault();
-      dragging = true;
-      startMouseX = e.clientX;
-      startMouseY = e.clientY;
-      startJarvisX = jarvisLeft;
-      startJarvisY = jarvisTop;
-      const pos = await window.electronAPI.getWinPosition();
-      startWinX = pos[0]; startWinY = pos[1];
-      jarvisEl.style.transition = 'none';
-    });
-
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      const dx = e.clientX - startMouseX;
-      const dy = e.clientY - startMouseY;
-
-      // Move the indicator on the map
-      const newLeft = Math.max(0, Math.min(MAP_W - WIN_W, startJarvisX + dx));
-      const newTop  = Math.max(0, Math.min(MAP_H - WIN_H, startJarvisY + dy));
-      jarvisEl.style.left = newLeft + 'px';
-      jarvisEl.style.top  = newTop  + 'px';
-
-      // Move the real window (convert map coords back to screen coords)
-      const newWinX = Math.round(startWinX + dx / scale);
-      const newWinY = Math.round(startWinY + dy / scale);
-      window.electronAPI.setWinPosition(newWinX, newWinY);
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      jarvisEl.style.transition = '';
-      setTimeout(loadDisplayList, 200);
-    }, { once: true });
+    `).join('');
   }
 
-  function moveToDisplay(displayId) {
-    if (!window.electronAPI?.moveToDisplay) return;
-    window.electronAPI.moveToDisplay(displayId);
-    setTimeout(loadDisplayList, 400);
-  }
-
-  async function loadApiKeysTab() {
+  // ─── About ────────────────────────────────────────────────────────────────
+  async function loadAboutTab() {
+    // Version
+    try {
+      const v = await window.electronAPI?.getVersion?.();
+      const el = document.getElementById('about-version');
+      if (el) el.textContent = v ? `VERSION ${v}` : 'DEV BUILD';
+    } catch(e) {
+      const el = document.getElementById('about-version');
+      if (el) el.textContent = 'DEV BUILD';
+    }
+    // Status
     try {
       const r = await fetch('/api/config');
       const data = await r.json();
-      const badge = (set, id) => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.textContent = set ? '✓ SET' : 'NOT SET';
-          el.style.color = set ? 'var(--hud-green)' : 'rgba(255,85,85,0.7)';
-        }
-      };
-      badge(data.proxy_set,     'proxy-badge');
-      badge(data.anthropic_set, 'anthropic-badge');
-      badge(data.supabase_set,  'supabase-badge');
-    } catch(e) { console.warn('[CONFIG]', e.message); }
+      const proxyEl = document.getElementById('about-proxy-status');
+      const cloudEl = document.getElementById('about-cloud-status');
+      if (proxyEl) {
+        proxyEl.textContent = data.proxy_set ? '✓ CONNECTED' : '✗ NOT CONNECTED';
+        proxyEl.style.color = data.proxy_set ? 'var(--hud-green)' : 'rgba(255,85,85,0.8)';
+      }
+      if (cloudEl) {
+        cloudEl.textContent = data.supabase_set ? '✓ ACTIVE' : '✗ NOT CONFIGURED';
+        cloudEl.style.color = data.supabase_set ? 'var(--hud-green)' : 'rgba(255,85,85,0.8)';
+      }
+    } catch(e) { console.warn('[ABOUT]', e); }
   }
 
-  async function saveApiKeys() {
-    const get = id => document.getElementById(id)?.value.trim() || '';
-    const payload = {
-      anthropic_key: get('key-anthropic'),
-      supabase_url:  get('key-supabase-url'),
-      supabase_key:  get('key-supabase-key'),
-    };
-    const st = document.getElementById('apikeys-status');
-    st.textContent = ''; st.className = 'profile-status';
-    try {
-      const r = await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!r.ok) throw new Error('Server error');
-      // Clear sensitive fields after save
-      ['key-anthropic', 'key-supabase-key'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      st.textContent = '✓ SAVED — active immediately';
-      st.className = 'profile-status ok';
-      loadApiKeysTab(); // refresh badges
-      setTimeout(() => { st.textContent = ''; }, 4000);
-    } catch(e) {
-      st.textContent = '✗ SAVE FAILED';
-      st.className = 'profile-status err';
-    }
+  function checkUpdate() {
+    const st = document.getElementById('about-update-status');
+    st.textContent = 'CHECKING...'; st.className = 'profile-status';
+    window.electronAPI?.checkUpdate?.();
+    setTimeout(() => { if (st.textContent === 'CHECKING...') { st.textContent = 'CHECK TRIGGERED'; st.className = 'profile-status ok'; } }, 1500);
   }
 
   async function loadHistoryList() {
@@ -2385,7 +2764,7 @@
 
       // Replay real messages
       msgs.forEach(m => {
-        const role   = m.role === 'user' ? 'user' : 'jarvis';
+        const role   = m.role === 'user' ? 'user' : 'jade';
         const bubble = appendMessage(role, '');
         if (m.role === 'user') {
           bubble.textContent = m.content;
@@ -2411,7 +2790,7 @@
       { role: 'user',      content: 'Who are you?' },
       { role: 'assistant', content: currentLang.greeting }
     );
-    appendMessage('jarvis', currentLang.greeting);
+    appendMessage('jade', currentLang.greeting);
     currentConvId = null;
     document.getElementById('hist-saving').textContent = '';
     loadHistoryList();
@@ -2523,7 +2902,7 @@
       code:'en', flag:'🇬🇧', label:'ENGLISH', ttsLang:'en-GB',
       greeting:'Good day. All systems nominal. How may I assist you, sir?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'ONLINE', neuralLink:'NEURAL LINK: ACTIVE',
         panelReactor:'ARC REACTOR', panelStatus:'SYSTEM STATUS', panelTemporal:'TEMPORAL',
         panelThreat:'THREAT ANALYSIS', panelLog:'ACTIVITY LOG', panelLocation:'LOCATION TRACK', panelLang:'LANGUAGE MODULE',
@@ -2533,7 +2912,7 @@
         reactorLabel:'POWER OUTPUT · 3000MW',
         requests:'REQUESTS', tokens:'TOKENS EST',
         location:'LOCATION', locationStatus:'TRACKING',
-        typingLabel:'JARVIS PROCESSING',
+        typingLabel:'JADE PROCESSING',
         prefix:'STARK://', placeholder:'What do you need, sir?', sendBtn:'TRANSMIT',
         logBoot:'Systems initialised', logNet:'Uplink established', logAI:'Neural core loaded',
         logSec:'Perimeter scan OK', logReady:'Awaiting input', logLangSwitch:'Protocol',
@@ -2545,7 +2924,7 @@
       code:'cs', flag:'🇨🇿', label:'ČEŠTINA', ttsLang:'cs-CZ',
       greeting:'Dobrý den. Všechny systémy jsou funkční. Jak vám mohu pomoci?',
       ui:{
-        subtitle:'Jen Poměrně Velmi Inteligentní Systém',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'ONLINE', neuralLink:'NEURÁLNÍ SPOJENÍ: AKTIVNÍ',
         panelReactor:'OBLOUKOVÝ REAKTOR', panelStatus:'STAV SYSTÉMU', panelTemporal:'ČAS',
         panelThreat:'ANALÝZA HROZEB', panelLog:'PROTOKOL AKTIVIT', panelLocation:'SLEDOVÁNÍ POLOHY', panelLang:'JAZYKOVÝ MODUL',
@@ -2555,7 +2934,7 @@
         reactorLabel:'VÝKON · 3000MW',
         requests:'DOTAZY', tokens:'TOKENY',
         location:'POLOHA', locationStatus:'SLEDOVÁNÍ',
-        typingLabel:'JARVIS ZPRACOVÁVÁ',
+        typingLabel:'JADE ZPRACOVÁVÁ',
         prefix:'STARK://', placeholder:'Jak vám mohu pomoci?', sendBtn:'ODESLAT',
         logBoot:'Systémy inicializovány', logNet:'Spojení navázáno', logAI:'Jádro načteno',
         logSec:'Sken perimetru OK', logReady:'Čekám na vstup', logLangSwitch:'Protokol',
@@ -2567,7 +2946,7 @@
       code:'de', flag:'🇩🇪', label:'DEUTSCH', ttsLang:'de-DE',
       greeting:'Guten Tag. Alle Systeme sind nominal. Wie kann ich Ihnen helfen?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'ONLINE', neuralLink:'NEURALVERBINDUNG: AKTIV',
         panelReactor:'LICHTBOGENREAKTOR', panelStatus:'SYSTEMSTATUS', panelTemporal:'ZEIT',
         panelThreat:'BEDROHUNGSANALYSE', panelLog:'AKTIVITÄTSLOG', panelLocation:'STANDORTVERFOLGUNG', panelLang:'SPRACHMODUL',
@@ -2577,7 +2956,7 @@
         reactorLabel:'LEISTUNG · 3000MW',
         requests:'ANFRAGEN', tokens:'TOKEN',
         location:'STANDORT', locationStatus:'VERFOLGUNG',
-        typingLabel:'JARVIS VERARBEITET',
+        typingLabel:'JADE VERARBEITET',
         prefix:'STARK://', placeholder:'Wie kann ich helfen?', sendBtn:'SENDEN',
         logBoot:'Systeme initialisiert', logNet:'Verbindung hergestellt', logAI:'Kern geladen',
         logSec:'Perimetercheck OK', logReady:'Warte auf Eingabe', logLangSwitch:'Protokoll',
@@ -2589,7 +2968,7 @@
       code:'fr', flag:'🇫🇷', label:'FRANÇAIS', ttsLang:'fr-FR',
       greeting:'Bonjour. Tous les systèmes sont opérationnels. Comment puis-je vous aider ?',
       ui:{
-        subtitle:'Juste Un Système Vraiment Très Intelligent',
+        subtitle:'JDStudios Exécutif Digital Artificiel',
         online:'EN LIGNE', neuralLink:'LIEN NEURAL: ACTIF',
         panelReactor:'RÉACTEUR ARC', panelStatus:'ÉTAT SYSTÈME', panelTemporal:'TEMPS',
         panelThreat:'ANALYSE MENACES', panelLog:'JOURNAL ACTIVITÉ', panelLocation:'SUIVI POSITION', panelLang:'MODULE LANGUE',
@@ -2599,7 +2978,7 @@
         reactorLabel:'PUISSANCE · 3000MW',
         requests:'REQUÊTES', tokens:'JETONS',
         location:'POSITION', locationStatus:'SUIVI',
-        typingLabel:'JARVIS TRAITE',
+        typingLabel:'JADE TRAITE',
         prefix:'STARK://', placeholder:'Que puis-je faire ?', sendBtn:'ENVOYER',
         logBoot:'Systèmes initialisés', logNet:'Connexion établie', logAI:'Noyau chargé',
         logSec:'Scan périmètre OK', logReady:'En attente', logLangSwitch:'Protocole',
@@ -2611,7 +2990,7 @@
       code:'es', flag:'🇪🇸', label:'ESPAÑOL', ttsLang:'es-ES',
       greeting:'Buenos días. Todos los sistemas están operativos. ¿En qué puedo ayudarle?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'EN LÍNEA', neuralLink:'ENLACE NEURAL: ACTIVO',
         panelReactor:'REACTOR DE ARCO', panelStatus:'ESTADO SISTEMA', panelTemporal:'TIEMPO',
         panelThreat:'ANÁLISIS AMENAZAS', panelLog:'REGISTRO ACTIVIDAD', panelLocation:'RASTREO POSICIÓN', panelLang:'MÓDULO IDIOMA',
@@ -2621,7 +3000,7 @@
         reactorLabel:'POTENCIA · 3000MW',
         requests:'CONSULTAS', tokens:'TOKENS',
         location:'UBICACIÓN', locationStatus:'RASTREO',
-        typingLabel:'JARVIS PROCESANDO',
+        typingLabel:'JADE PROCESANDO',
         prefix:'STARK://', placeholder:'¿En qué puedo ayudar?', sendBtn:'ENVIAR',
         logBoot:'Sistemas iniciados', logNet:'Conexión establecida', logAI:'Núcleo cargado',
         logSec:'Escaneo OK', logReady:'Esperando entrada', logLangSwitch:'Protocolo',
@@ -2633,7 +3012,7 @@
       code:'it', flag:'🇮🇹', label:'ITALIANO', ttsLang:'it-IT',
       greeting:'Buongiorno. Tutti i sistemi sono operativi. Come posso assisterla?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'IN LINEA', neuralLink:'COLLEGAMENTO NEURALE: ATTIVO',
         panelReactor:'REATTORE AD ARCO', panelStatus:'STATO SISTEMA', panelTemporal:'TEMPO',
         panelThreat:'ANALISI MINACCE', panelLog:'REGISTRO ATTIVITÀ', panelLocation:'TRACCIAMENTO', panelLang:'MODULO LINGUA',
@@ -2643,7 +3022,7 @@
         reactorLabel:'POTENZA · 3000MW',
         requests:'RICHIESTE', tokens:'TOKEN',
         location:'POSIZIONE', locationStatus:'TRACCIAMENTO',
-        typingLabel:'JARVIS IN ELABORAZIONE',
+        typingLabel:'JADE IN ELABORAZIONE',
         prefix:'STARK://', placeholder:'Come posso aiutare?', sendBtn:'INVIA',
         logBoot:'Sistemi avviati', logNet:'Connessione stabilita', logAI:'Nucleo caricato',
         logSec:'Scansione OK', logReady:'In attesa', logLangSwitch:'Protocollo',
@@ -2655,7 +3034,7 @@
       code:'pt', flag:'🇧🇷', label:'PORTUGUÊS', ttsLang:'pt-BR',
       greeting:'Bom dia. Todos os sistemas estão operacionais. Como posso ajudar?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'ON-LINE', neuralLink:'LINK NEURAL: ATIVO',
         panelReactor:'REATOR DE ARCO', panelStatus:'STATUS SISTEMA', panelTemporal:'TEMPO',
         panelThreat:'ANÁLISE AMEAÇAS', panelLog:'REGISTRO ATIVIDADE', panelLocation:'RASTREAMENTO', panelLang:'MÓDULO IDIOMA',
@@ -2665,7 +3044,7 @@
         reactorLabel:'POTÊNCIA · 3000MW',
         requests:'CONSULTAS', tokens:'TOKENS',
         location:'LOCALIZAÇÃO', locationStatus:'RASTREAMENTO',
-        typingLabel:'JARVIS PROCESSANDO',
+        typingLabel:'JADE PROCESSANDO',
         prefix:'STARK://', placeholder:'Como posso ajudar?', sendBtn:'ENVIAR',
         logBoot:'Sistemas iniciados', logNet:'Conexão estabelecida', logAI:'Núcleo carregado',
         logSec:'Scan OK', logReady:'Aguardando entrada', logLangSwitch:'Protocolo',
@@ -2677,7 +3056,7 @@
       code:'ru', flag:'🇷🇺', label:'РУССКИЙ', ttsLang:'ru-RU',
       greeting:'Добрый день. Все системы в норме. Как я могу помочь вам?',
       ui:{
-        subtitle:'Весьма Разумная Интеллектуальная Система',
+        subtitle:'JDStudios Искусственный Цифровой Директор',
         online:'В СЕТИ', neuralLink:'НЕЙРОСВЯЗЬ: АКТИВНА',
         panelReactor:'ДУГОВОЙ РЕАКТОР', panelStatus:'СТАТУС СИСТЕМЫ', panelTemporal:'ВРЕМЯ',
         panelThreat:'АНАЛИЗ УГРОЗ', panelLog:'ЖУРНАЛ АКТИВНОСТИ', panelLocation:'СЛЕЖЕНИЕ', panelLang:'МОДУЛЬ ЯЗЫКА',
@@ -2699,7 +3078,7 @@
       code:'ja', flag:'🇯🇵', label:'日本語', ttsLang:'ja-JP',
       greeting:'こんにちは。全システム正常です。ご用件をどうぞ。',
       ui:{
-        subtitle:'非常に賢いシステム',
+        subtitle:'JDStudios 人工デジタルエグゼクティブ',
         online:'オンライン', neuralLink:'神経リンク：有効',
         panelReactor:'アークリアクター', panelStatus:'システム状態', panelTemporal:'時刻',
         panelThreat:'脅威分析', panelLog:'活動ログ', panelLocation:'位置追跡', panelLang:'言語モジュール',
@@ -2709,7 +3088,7 @@
         reactorLabel:'出力 · 3000MW',
         requests:'リクエスト', tokens:'トークン',
         location:'現在地', locationStatus:'追跡中',
-        typingLabel:'JARVIS 処理中',
+        typingLabel:'JADE 処理中',
         prefix:'スターク://', placeholder:'ご用件をどうぞ', sendBtn:'送信',
         logBoot:'システム起動', logNet:'接続確立', logAI:'コア読込完了',
         logSec:'周囲スキャンOK', logReady:'入力待機中', logLangSwitch:'プロトコル',
@@ -2721,7 +3100,7 @@
       code:'zh', flag:'🇨🇳', label:'中文', ttsLang:'zh-CN',
       greeting:'您好。所有系统运行正常。请问有什么可以帮您？',
       ui:{
-        subtitle:'非常智能的系统',
+        subtitle:'JDStudios 人工智能数字执行官',
         online:'在线', neuralLink:'神经链接：激活',
         panelReactor:'弧形反应堆', panelStatus:'系统状态', panelTemporal:'时间',
         panelThreat:'威胁分析', panelLog:'活动日志', panelLocation:'位置追踪', panelLang:'语言模块',
@@ -2731,7 +3110,7 @@
         reactorLabel:'输出功率 · 3000MW',
         requests:'请求', tokens:'令牌',
         location:'位置', locationStatus:'追踪中',
-        typingLabel:'JARVIS 处理中',
+        typingLabel:'JADE 处理中',
         prefix:'斯塔克://', placeholder:'有什么可以帮您？', sendBtn:'发送',
         logBoot:'系统已初始化', logNet:'连接已建立', logAI:'核心已加载',
         logSec:'周界扫描正常', logReady:'等待输入', logLangSwitch:'协议',
@@ -2743,7 +3122,7 @@
       code:'ko', flag:'🇰🇷', label:'한국어', ttsLang:'ko-KR',
       greeting:'안녕하십니까. 모든 시스템이 정상입니다. 어떻게 도와드릴까요?',
       ui:{
-        subtitle:'매우 지능적인 시스템',
+        subtitle:'JDStudios 인공 디지털 임원',
         online:'온라인', neuralLink:'신경 링크: 활성',
         panelReactor:'아크 원자로', panelStatus:'시스템 상태', panelTemporal:'시간',
         panelThreat:'위협 분석', panelLog:'활동 로그', panelLocation:'위치 추적', panelLang:'언어 모듈',
@@ -2753,7 +3132,7 @@
         reactorLabel:'출력 · 3000MW',
         requests:'요청', tokens:'토큰',
         location:'위치', locationStatus:'추적 중',
-        typingLabel:'JARVIS 처리 중',
+        typingLabel:'JADE 처리 중',
         prefix:'스타크://', placeholder:'어떻게 도와드릴까요?', sendBtn:'전송',
         logBoot:'시스템 초기화', logNet:'연결 수립', logAI:'코어 로드',
         logSec:'경계 스캔 정상', logReady:'입력 대기', logLangSwitch:'프로토콜',
@@ -2765,7 +3144,7 @@
       code:'ar', flag:'🇸🇦', label:'العربية', ttsLang:'ar-SA',
       greeting:'مرحباً. جميع الأنظمة تعمل بشكل طبيعي. كيف يمكنني مساعدتك؟',
       ui:{
-        subtitle:'نظام ذكي للغاية',
+        subtitle:'JDStudios المدير الرقمي الاصطناعي',
         online:'متصل', neuralLink:'الرابط العصبي: نشط',
         panelReactor:'المفاعل القوسي', panelStatus:'حالة النظام', panelTemporal:'الوقت',
         panelThreat:'تحليل التهديدات', panelLog:'سجل النشاط', panelLocation:'تتبع الموقع', panelLang:'وحدة اللغة',
@@ -2787,7 +3166,7 @@
       code:'pl', flag:'🇵🇱', label:'POLSKI', ttsLang:'pl-PL',
       greeting:'Dzień dobry. Wszystkie systemy działają prawidłowo. Jak mogę pomóc?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'ONLINE', neuralLink:'ŁĄCZE NEURONOWE: AKTYWNE',
         panelReactor:'REAKTOR ŁUKOWY', panelStatus:'STAN SYSTEMU', panelTemporal:'CZAS',
         panelThreat:'ANALIZA ZAGROŻEŃ', panelLog:'DZIENNIK AKTYWNOŚCI', panelLocation:'ŚLEDZENIE LOKALIZACJI', panelLang:'MODUŁ JĘZYKA',
@@ -2797,7 +3176,7 @@
         reactorLabel:'MOC · 3000MW',
         requests:'ZAPYTANIA', tokens:'TOKENY',
         location:'LOKALIZACJA', locationStatus:'ŚLEDZENIE',
-        typingLabel:'JARVIS PRZETWARZA',
+        typingLabel:'JADE PRZETWARZA',
         prefix:'STARK://', placeholder:'Jak mogę pomóc?', sendBtn:'WYŚLIJ',
         logBoot:'Systemy zainicjowane', logNet:'Połączenie nawiązane', logAI:'Rdzeń załadowany',
         logSec:'Skan obwodu OK', logReady:'Oczekuję na wejście', logLangSwitch:'Protokół',
@@ -2809,7 +3188,7 @@
       code:'sk', flag:'🇸🇰', label:'SLOVENČINA', ttsLang:'sk-SK',
       greeting:'Dobrý deň. Všetky systémy sú funkčné. Ako vám môžem pomôcť?',
       ui:{
-        subtitle:'Just A Rather Very Intelligent System',
+        subtitle:'JDStudios Artificial Digital Executive',
         online:'ONLINE', neuralLink:'NEURÁLNE SPOJENIE: AKTÍVNE',
         panelReactor:'OBLÚKOVÝ REAKTOR', panelStatus:'STAV SYSTÉMU', panelTemporal:'ČAS',
         panelThreat:'ANALÝZA HROZIEB', panelLog:'PROTOKOL AKTIVÍT', panelLocation:'SLEDOVANIE POLOHY', panelLang:'JAZYKOVÝ MODUL',
@@ -2819,7 +3198,7 @@
         reactorLabel:'VÝKON · 3000MW',
         requests:'DOTAZY', tokens:'TOKENY',
         location:'POLOHA', locationStatus:'SLEDOVANIE',
-        typingLabel:'JARVIS SPRACÚVA',
+        typingLabel:'JADE SPRACÚVA',
         prefix:'STARK://', placeholder:'Ako vám môžem pomôcť?', sendBtn:'ODOSLAŤ',
         logBoot:'Systémy inicializované', logNet:'Spojenie nadviazané', logAI:'Jadro načítané',
         logSec:'Sken perimetra OK', logReady:'Čakám na vstup', logLangSwitch:'Protokol',
@@ -2915,7 +3294,7 @@
       { role: 'user',      content: 'Who are you?' },
       { role: 'assistant', content: lang.greeting  }
     );
-    appendMessage('jarvis', lang.greeting);
+    appendMessage('jade', lang.greeting);
     addLog(lang.ui.logLangSwitch, lang.label);
   }
 
@@ -2976,7 +3355,7 @@
     wrap.className = `message ${role}`;
     const label  = document.createElement('div');
     label.className = 'msg-label';
-    label.textContent = role === 'user' ? getUserLabel() : 'J.A.R.V.I.S.';
+    label.textContent = role === 'user' ? getUserLabel() : 'J.A.D.E.';
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
     bubble.textContent = text;
@@ -3009,13 +3388,14 @@
       ? ` IMPORTANT: You MUST respond ONLY in ${currentLang.label} (BCP-47: ${currentLang.ttsLang}). Never use English.`
       : '';
 
-    // Vytvoř prázdnou JARVIS bublinu — text přibude streamingem
+    // Vytvoř prázdnou JADE bublinu — text přibude streamingem
     typing.classList.add('visible');
     msgs.scrollTop = msgs.scrollHeight;
-    const bubble = appendMessage('jarvis', '');
+    const bubble = appendMessage('jade', '');
     typing.classList.remove('visible');
 
     let fullReply = '';
+    let gotError  = false;
 
     try {
       const res = await fetch('/api/chat/stream', {
@@ -3046,7 +3426,9 @@
         } else if (data.done) {
           document.getElementById('searching').classList.remove('visible');
         } else if (data.error) {
-          bubble.textContent = '[ ERROR ] ' + (data.error.message || JSON.stringify(data.error));
+          gotError = true;
+          const errDetail = data.error.message || data.error.error?.message || JSON.stringify(data.error);
+          bubble.textContent = '[ ERROR ] ' + errDetail;
         }
       }
 
@@ -3063,7 +3445,8 @@
       // Zpracuj případný zbytek v bufferu po zavření streamu
       if (lineBuffer.trim()) processSSELine(lineBuffer);
 
-      if (!fullReply) throw new Error('Empty response');
+      if (!fullReply && !gotError) throw new Error('Empty response');
+      if (gotError) return;  // error already shown in bubble
 
       // Stream skončil — vyrenderuj markdown
       document.getElementById('searching').classList.remove('visible');
@@ -3072,6 +3455,8 @@
       msgs.scrollTop = msgs.scrollHeight;
 
       speakText(fullReply);
+      playResponseSound();
+      showResponseNotification(fullReply);
       history.push({ role: 'assistant', content: fullReply });
       loadMemory();
       autoSaveConversation();
@@ -3139,20 +3524,20 @@
   function diagVoices() {
     const voices = speechSynthesis.getVoices();
     if (voices.length === 0) {
-      appendMessage('jarvis', '[ VOICE SCAN ] No voices loaded yet. Try clicking SCAN VOICES again in 2 seconds, or fully restart your browser after installing the Czech voice pack.');
+      appendMessage('jade', '[ VOICE SCAN ] No voices loaded yet. Try clicking SCAN VOICES again in 2 seconds, or fully restart your browser after installing the Czech voice pack.');
       return;
     }
     const csVoices = voices.filter(v => v.lang.toLowerCase().startsWith('cs'));
     if (csVoices.length > 0) {
       const names = csVoices.map(v => `• ${v.name} [${v.lang}]`).join('\n');
-      appendMessage('jarvis', `[ VOICE SCAN ] Czech voices found (${csVoices.length}):\n${names}\n\nAttempting to speak now...`);
+      appendMessage('jade', `[ VOICE SCAN ] Czech voices found (${csVoices.length}):\n${names}\n\nAttempting to speak now...`);
       // Force update the TTS info and try speaking
       setText('lang-voice-info', 'TTS: ' + csVoices[0].name.slice(0, 20));
       shownHints.clear();
-      speakText('Dobrý den. Jsem J.A.R.V.I.S. Český hlasový modul je aktivní.');
+      speakText('Dobrý den. Jsem J.A.D.E. Český hlasový modul je aktivní.');
     } else {
       const allLangs = [...new Set(voices.map(v => v.lang))].sort().join(', ');
-      appendMessage('jarvis', `[ VOICE SCAN ] No Czech voice found.\n\nTotal voices available: ${voices.length}\nLanguages: ${allLangs}\n\nPlease fully close Chrome (all windows), then reopen it. Windows sometimes requires a full browser restart to expose newly installed voices.`);
+      appendMessage('jade', `[ VOICE SCAN ] No Czech voice found.\n\nTotal voices available: ${voices.length}\nLanguages: ${allLangs}\n\nPlease fully close Chrome (all windows), then reopen it. Windows sometimes requires a full browser restart to expose newly installed voices.`);
     }
   }
 
@@ -3173,7 +3558,7 @@
     if (voice) utt.voice = voice;
     utt.rate = voiceConfig.rate; utt.pitch = voiceConfig.pitch; utt.volume = 1;
     isSpeaking = true;
-    setVoiceStatus('speaking', 'JARVIS');
+    setVoiceStatus('speaking', 'JADE');
     utt.onend = utt.onerror = () => { isSpeaking = false; setVoiceStatus('off'); };
     speechSynthesis.speak(utt);
   }
@@ -3190,7 +3575,7 @@
       ar: '[ TTS UNAVAILABLE ] Arabic voice not installed. Install it via OS speech settings.',
     };
     const msg = hints[langCode] || `[ TTS UNAVAILABLE ] No voice found for this language (${langCode}). Install it via your OS speech/accessibility settings, then reload.`;
-    appendMessage('jarvis', msg);
+    appendMessage('jade', msg);
   }
 
   function toggleMic() {
@@ -3240,7 +3625,7 @@
               setTimeout(() => sendMessage(), 100);
             } else if (result.error) {
               addLog('MIC', result.error);
-              appendMessage('jarvis', '[ MIC ] ' + result.error);
+              appendMessage('jade', '[ MIC ] ' + result.error);
             } else {
               addLog('MIC', 'žádný hlas rozpoznán');
             }
@@ -3261,7 +3646,7 @@
         isListening = false;
         setVoiceStatus('off');
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          appendMessage('jarvis', '[ MIC ] Přístup k mikrofonu odepřen.\n\nZkontroluj: Windows → Nastavení → Ochrana osobních údajů → Mikrofon → povol přístup aplikacím.');
+          appendMessage('jade', '[ MIC ] Přístup k mikrofonu odepřen.\n\nZkontroluj: Windows → Nastavení → Ochrana osobních údajů → Mikrofon → povol přístup aplikacím.');
         } else {
           addLog('MIC', 'getUserMedia: ' + err.message);
         }

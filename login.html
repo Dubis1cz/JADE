@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>J.A.R.V.I.S. — Access Control</title>
+<title>J.A.D.E. — Access Control</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600&family=Share+Tech+Mono&display=swap');
 
@@ -396,7 +396,7 @@
 
 <div class="auth-wrap">
   <div class="logo">
-    <div class="logo-title">J.A.R.V.I.S.</div>
+    <div class="logo-title">J.A.D.E.</div>
     <div class="logo-sub">BIOMETRIC ACCESS CONTROL SYSTEM</div>
   </div>
 
@@ -443,7 +443,7 @@
       <div class="step-dot" id="dot3"></div>
     </div>
     <div class="onboard-title">PERSONAL IDENTIFICATION</div>
-    <div class="onboard-sub">JARVIS will use this to address and assist you correctly</div>
+    <div class="onboard-sub">JADE will use this to address and assist you correctly</div>
 
     <div class="field-row">
       <div class="field">
@@ -476,7 +476,7 @@
       <div class="step-dot" id="dot3b"></div>
     </div>
     <div class="onboard-title">LANGUAGE & PREFERENCES</div>
-    <div class="onboard-sub">JARVIS will communicate with you in your preferred language</div>
+    <div class="onboard-sub">JADE will communicate with you in your preferred language</div>
 
     <div class="field">
       <label>PREFERRED LANGUAGE</label>
@@ -522,7 +522,7 @@
     </div>
 
     <div class="spinner" id="save-spinner"></div>
-    <button class="btn" id="save-btn" onclick="saveOnboarding()">INITIALISE JARVIS →</button>
+    <button class="btn" id="save-btn" onclick="saveOnboarding()">INITIALISE JADE →</button>
     <button class="btn btn-secondary" onclick="nextStep(2)">← BACK</button>
   </div>
 
@@ -650,7 +650,7 @@ function showWelcomeBack(user, memory) {
   showScreen('welcome');
 }
 
-// ── Enter JARVIS ──────────────────────────────────────────
+// ── Enter JADE ──────────────────────────────────────────
 function enterJarvis() {
   if (!currentUser) return;
   // Save session and redirect to main HUD
@@ -659,9 +659,9 @@ function enterJarvis() {
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ email: currentUser.email })
   }).then(() => {
-    window.location.href = '/jarvis.html';
+    window.location.href = '/jade.html';
   }).catch(() => {
-    window.location.href = '/jarvis.html';
+    window.location.href = '/jade.html';
   });
 }
 
@@ -753,13 +753,13 @@ async function saveOnboarding() {
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email: currentUser.email, memory })
     });
-    // Set session and go to JARVIS
+    // Set session and go to JADE
     await fetch('/api/auth/session', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ email: currentUser.email })
     });
-    window.location.href = '/jarvis.html';
+    window.location.href = '/jade.html';
   } catch(e) {
     btn.disabled = false;
     spinner.classList.remove('visible');
