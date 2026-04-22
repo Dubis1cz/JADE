@@ -27,6 +27,7 @@
       "oneClick": true,
       "perMachine": false,
       "allowElevation": true,
+      "include": "build/installer.nsh",
       "shortcutName": "JADE",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
