@@ -13,7 +13,7 @@ if os.path.exists(_py_embed):
     if _py_embed not in sys.path:
         sys.path.insert(0, _py_embed)
 
-import http.server, json, urllib.request, urllib.error, urllib.parse, datetime, re, time, wave, io, socketserver, threading
+import http.server, json, urllib.request, urllib.error, urllib.parse, datetime, re, time, wave, io, socketserver, threading, subprocess, webbrowser, base64
 
 # Force UTF-8 output
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -365,6 +365,194 @@ def ddg_html_search(query, max_results=5):
         return '\n'.join(results) if results else 'No results found.'
     except Exception as e:
         return f'Search failed: {e}'
+
+# ── Agent tools (computer control) ───────────────────────────────────────────
+AGENT_TOOLS = [
+    {
+        "name": "run_command",
+        "description": "Execute a PowerShell command on the user's Windows PC and return the output. Use this to open apps, manage files, control Windows settings, get system info, install software, etc.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "PowerShell command to execute"},
+                "timeout": {"type": "integer", "description": "Timeout in seconds (default 30, max 120)"}
+            },
+            "required": ["command"]
+        }
+    },
+    {
+        "name": "read_file",
+        "description": "Read the text content of a file on the local filesystem.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Absolute or relative path to the file"}
+            },
+            "required": ["path"]
+        }
+    },
+    {
+        "name": "write_file",
+        "description": "Write text content to a file (creates file or overwrites existing).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to write to"},
+                "content": {"type": "string", "description": "Text content to write"}
+            },
+            "required": ["path", "content"]
+        }
+    },
+    {
+        "name": "list_files",
+        "description": "List files and folders in a directory.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Directory path to list"},
+                "pattern": {"type": "string", "description": "Optional glob pattern (e.g. '*.py', '*.txt')"}
+            },
+            "required": ["path"]
+        }
+    },
+    {
+        "name": "open_url",
+        "description": "Open a URL in the default web browser.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "URL to open"}
+            },
+            "required": ["url"]
+        }
+    },
+    {
+        "name": "take_screenshot",
+        "description": "Take a screenshot of the entire screen to see what is currently displayed. Use this before performing UI actions to understand the current state.",
+        "input_schema": {
+            "type": "object",
+            "properties": {}
+        }
+    },
+]
+
+def execute_agent_tool(name, input_data):
+    """Execute an agent tool and return result string."""
+    try:
+        if name == "run_command":
+            cmd = input_data.get("command", "")
+            timeout = min(int(input_data.get("timeout", 30)), 120)
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd],
+                capture_output=True, text=True, timeout=timeout,
+                encoding='utf-8', errors='replace'
+            )
+            out = (result.stdout or "").strip()
+            err = (result.stderr or "").strip()
+            # Filter noisy PS warnings
+            err = '\n'.join(l for l in err.splitlines() if not l.startswith('WARNING:') and 'PSReadLine' not in l)
+            output = out
+            if err:
+                output += ("\n[STDERR] " + err) if output else ("[STDERR] " + err)
+            if result.returncode != 0 and not output:
+                output = f"Exit code: {result.returncode}"
+            return output or "(command completed, no output)"
+
+        elif name == "read_file":
+            path = input_data.get("path", "")
+            with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+            if len(content) > 12000:
+                content = content[:12000] + "\n... [truncated]"
+            return content
+
+        elif name == "write_file":
+            path = input_data.get("path", "")
+            content = input_data.get("content", "")
+            parent = os.path.dirname(os.path.abspath(path))
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            return f"Written {len(content)} chars to: {path}"
+
+        elif name == "list_files":
+            path = input_data.get("path", "")
+            pattern = input_data.get("pattern", "*")
+            import glob as _g
+            matches = _g.glob(os.path.join(path, pattern))
+            if not matches:
+                return f"No files found: {os.path.join(path, pattern)}"
+            lines = []
+            for p in sorted(matches)[:200]:
+                try:
+                    stat = os.stat(p)
+                    ftype = "DIR " if os.path.isdir(p) else "FILE"
+                    size = f"{stat.st_size:>10,} B" if not os.path.isdir(p) else "           -"
+                    lines.append(f"{ftype}  {size}  {os.path.basename(p)}")
+                except:
+                    lines.append(f"?  {os.path.basename(p)}")
+            return f"{path}:\n" + "\n".join(lines)
+
+        elif name == "open_url":
+            url = input_data.get("url", "")
+            webbrowser.open(url)
+            return f"Opened: {url}"
+
+        elif name == "take_screenshot":
+            ps_script = r"""
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$bmp = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+$path = "$env:TEMP\jade_screen.png"
+$bmp.Save($path)
+$g.Dispose(); $bmp.Dispose()
+Write-Output $path
+"""
+            r = subprocess.run(["powershell", "-NoProfile", "-Command", ps_script],
+                               capture_output=True, text=True, timeout=15)
+            img_path = r.stdout.strip()
+            if img_path and os.path.exists(img_path):
+                with open(img_path, 'rb') as f:
+                    data = base64.b64encode(f.read()).decode()
+                try: os.remove(img_path)
+                except: pass
+                return "__SCREENSHOT__:" + data
+            return "Screenshot failed: " + (r.stderr or "unknown error")
+
+        else:
+            return f"Unknown tool: {name}"
+
+    except subprocess.TimeoutExpired:
+        return "Command timed out"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+AGENT_SYSTEM = """
+
+AGENT MODE — COMPUTER CONTROL:
+You have full control over the user's Windows computer. To use a tool, output a <tool_call> JSON block on its own line:
+
+<tool_call>{"name": "run_command", "args": {"command": "Start-Process notepad"}}</tool_call>
+
+Available tools:
+• run_command    — {"command": "PowerShell command here", "timeout": 30}
+• read_file      — {"path": "C:\\path\\to\\file.txt"}
+• write_file     — {"path": "C:\\path\\to\\file.txt", "content": "text to write"}
+• list_files     — {"path": "C:\\Users\\", "pattern": "*.txt"}
+• open_url       — {"url": "https://example.com"}
+• take_screenshot — {}
+
+Rules:
+- Output ONE <tool_call> at a time, wait for the result
+- Results are provided as [TOOL RESULT] messages
+- Chain multiple tool calls as needed to complete the task
+- After finishing, briefly confirm what was done
+- If a command fails, try an alternative approach
+"""
 
 # ── System prompt builder ─────────────────────────────────────────────────────
 SEARCH_INSTRUCTIONS = """
@@ -1052,6 +1240,141 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 try:
                     sse({'error': {'message': str(e)}})
+                except: pass
+
+        # ── Agent mode (computer control via XML tool calls) ─────────────────
+        elif self.path == '/api/chat/agent':
+            try:
+                payload    = json.loads(body)
+                mem        = load_memory()
+                messages   = payload.get('messages', [])
+                model      = payload.get('model', 'claude-opus-4-5')
+                max_tokens = payload.get('max_tokens', 4096)
+                sys_base   = payload.get('system', '')
+                system_prompt = build_system(sys_base, mem) + AGENT_SYSTEM
+
+                self.send_response(200)
+                self._cors()
+                self.send_header('Content-Type', 'text/event-stream')
+                self.send_header('Cache-Control', 'no-cache')
+                self.send_header('X-Accel-Buffering', 'no')
+                self.end_headers()
+
+                def sse(obj):
+                    try:
+                        self.wfile.write(('data: ' + json.dumps(obj, ensure_ascii=False) + '\n\n').encode('utf-8'))
+                        self.wfile.flush()
+                    except: pass
+
+                current_messages = list(messages)
+                full_reply = ''
+
+                for iteration in range(12):
+                    agent_payload = {
+                        'model':      model,
+                        'max_tokens': max_tokens,
+                        'system':     system_prompt,
+                        'messages':   current_messages,
+                    }
+
+                    # Stream response, detect <tool_call> tags
+                    accumulated = ''
+                    sent_pos    = 0
+                    tool_hit    = False
+                    GUARD       = 20
+
+                    for chunk in stream_anthropic(agent_payload):
+                        accumulated += chunk
+                        if tool_hit:
+                            continue
+                        tc_idx = accumulated.find('<tool_call>', sent_pos)
+                        if tc_idx != -1:
+                            # Send text before the tag
+                            before = accumulated[sent_pos:tc_idx].strip()
+                            if before:
+                                words = before.split(' ')
+                                for i, w in enumerate(words):
+                                    sse({'t': w + ('' if i == len(words)-1 else ' ')})
+                                full_reply += (' ' if full_reply else '') + before
+                            tool_hit = True
+                            continue
+                        # Safe flush (keep GUARD chars buffered)
+                        safe_end = max(sent_pos, len(accumulated) - GUARD)
+                        if safe_end > sent_pos:
+                            chunk_out = accumulated[sent_pos:safe_end]
+                            sse({'t': chunk_out})
+                            full_reply += chunk_out
+                            sent_pos = safe_end
+
+                    if not tool_hit:
+                        # Flush tail
+                        tail = accumulated[sent_pos:]
+                        if tail:
+                            sse({'t': tail})
+                            full_reply += tail
+                        apply_memory_blocks(full_reply)
+                        break  # No tool call — done
+
+                    # Parse tool call from accumulated
+                    tc_match = re.search(r'<tool_call>(.*?)</tool_call>', accumulated, re.DOTALL)
+                    if not tc_match:
+                        # Tag incomplete — get full response without streaming
+                        resp_full = call_anthropic(agent_payload)
+                        accumulated = resp_full.get('content', [{}])[0].get('text', '')
+                        tc_match = re.search(r'<tool_call>(.*?)</tool_call>', accumulated, re.DOTALL)
+
+                    if not tc_match:
+                        # Still no tool call — emit rest as text and stop
+                        tail = re.sub(r'<tool_call>.*', '', accumulated, flags=re.DOTALL).strip()
+                        if tail:
+                            sse({'t': tail})
+                            full_reply += tail
+                        apply_memory_blocks(full_reply)
+                        break
+
+                    # Execute the tool
+                    try:
+                        tc_json    = json.loads(tc_match.group(1).strip())
+                        tool_name  = tc_json.get('name', '')
+                        tool_args  = tc_json.get('args', {})
+                    except Exception as parse_err:
+                        sse({'t': f'\n[ AGENT ] Could not parse tool call: {parse_err}\n'})
+                        apply_memory_blocks(full_reply)
+                        break
+
+                    sse({'tool': tool_name, 'input': tool_args})
+                    print(f'  [AGENT] {tool_name}: {json.dumps(tool_args)[:120]}')
+
+                    result = execute_agent_tool(tool_name, tool_args)
+
+                    if isinstance(result, str) and result.startswith('__SCREENSHOT__:'):
+                        img_data = result[len('__SCREENSHOT__:'):]
+                        sse({'tool_result': tool_name, 'output': '[screenshot captured]'})
+                        tool_result_content = f'[TOOL RESULT: {tool_name}]\n[image: screenshot attached]\n[END TOOL RESULT]'
+                        # For screenshot, we send image in next user message
+                        visible_assistant = re.sub(r'\s*<tool_call>.*?</tool_call>', '', accumulated, flags=re.DOTALL).strip()
+                        current_messages.append({'role': 'assistant', 'content': visible_assistant or '...'})
+                        current_messages.append({'role': 'user', 'content': [
+                            {'type': 'text', 'text': f'[TOOL RESULT: {tool_name}]'},
+                            {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/png', 'data': img_data}},
+                            {'type': 'text', 'text': '[END TOOL RESULT]\nContinue with the task.'}
+                        ]})
+                    else:
+                        result_str = str(result)[:8000]
+                        sse({'tool_result': tool_name, 'output': result_str[:600]})
+                        visible_assistant = re.sub(r'\s*<tool_call>.*?</tool_call>', '', accumulated, flags=re.DOTALL).strip()
+                        current_messages.append({'role': 'assistant', 'content': visible_assistant or '...'})
+                        current_messages.append({'role': 'user', 'content':
+                            f'[TOOL RESULT: {tool_name}]\n{result_str}\n[END TOOL RESULT]\nContinue with the task.'
+                        })
+
+                sse({'done': True, 'full': full_reply})
+
+            except urllib.error.HTTPError as e:
+                try: sse({'error': json.loads(e.read())})
+                except: sse({'error': {'message': str(e)}})
+            except Exception as e:
+                try: sse({'error': {'message': str(e)}})
                 except: pass
 
         # ── Search endpoint (direct) ──────────────────────────────────────────

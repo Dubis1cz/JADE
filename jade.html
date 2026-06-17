@@ -604,6 +604,71 @@
     cursor: not-allowed;
   }
 
+  .agent-toggle-btn {
+    background: transparent;
+    border: 1px solid rgba(0,212,255,0.3);
+    color: rgba(0,212,255,0.5);
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .agent-toggle-btn:hover {
+    border-color: var(--hud-blue);
+    color: var(--hud-blue);
+  }
+  .agent-toggle-btn.active {
+    background: rgba(255,170,0,0.15);
+    border-color: #ffaa00;
+    color: #ffaa00;
+    text-shadow: 0 0 8px rgba(255,170,0,0.6);
+    box-shadow: 0 0 12px rgba(255,170,0,0.2);
+  }
+
+  /* Tool execution blocks */
+  .tool-block {
+    margin: 6px 0;
+    border: 1px solid rgba(255,170,0,0.35);
+    border-radius: 4px;
+    background: rgba(255,170,0,0.05);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    overflow: hidden;
+  }
+  .tool-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    color: #ffaa00;
+    user-select: none;
+  }
+  .tool-header:hover { background: rgba(255,170,0,0.08); }
+  .tool-icon { font-size: 12px; flex-shrink: 0; }
+  .tool-name { font-weight: bold; letter-spacing: 1px; flex-shrink: 0; }
+  .tool-cmd  { color: rgba(255,170,0,0.65); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .tool-chevron { flex-shrink: 0; font-size: 10px; transition: transform 0.2s; }
+  .tool-block.open .tool-chevron { transform: rotate(180deg); }
+  .tool-output {
+    display: none;
+    padding: 8px 10px;
+    color: rgba(255,255,255,0.7);
+    border-top: 1px solid rgba(255,170,0,0.2);
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 10.5px;
+    line-height: 1.5;
+  }
+  .tool-block.open .tool-output { display: block; }
+  .tool-running .tool-name::after { content: ' …'; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
   /* Scan line effect */
   .scanline {
     position: fixed;
@@ -1493,6 +1558,7 @@
       </svg>
     </button>
     <input class="input-field" id="user-input" type="text" placeholder="What do you need, sir?" autocomplete="off" />
+    <button class="agent-toggle-btn" id="agent-toggle-btn" onclick="toggleAgentMode()" title="Agent Mode — JADE controls your computer">⚡ AGENT</button>
     <button class="send-btn" id="send-btn" onclick="sendMessage()">TRANSMIT</button>
   </div>
 
@@ -1627,7 +1693,7 @@
           <div class="ai-field">
             <div class="ai-label">MODEL</div>
             <div class="ai-cards" id="ai-model-cards">
-              <div class="ai-card selected" onclick="selectAICard('model', 'claude-sonnet-4-20250514', this)">
+              <div class="ai-card selected" onclick="selectAICard('model', 'claude-sonnet-4-6', this)">
                 <div class="ai-card-radio"></div>
                 <div class="ai-card-info">
                   <div class="ai-card-name">Claude Sonnet 4</div>
@@ -1635,7 +1701,7 @@
                 </div>
                 <div class="ai-card-badge badge-smart">DEFAULT</div>
               </div>
-              <div class="ai-card" onclick="selectAICard('model', 'claude-opus-4-5', this)">
+              <div class="ai-card" onclick="selectAICard('model', 'claude-opus-4-8', this)">
                 <div class="ai-card-radio"></div>
                 <div class="ai-card-info">
                   <div class="ai-card-name">Claude Opus 4.5</div>
@@ -1643,7 +1709,7 @@
                 </div>
                 <div class="ai-card-badge badge-power">POWERFUL</div>
               </div>
-              <div class="ai-card" onclick="selectAICard('model', 'claude-haiku-4-5', this)">
+              <div class="ai-card" onclick="selectAICard('model', 'claude-haiku-4-5-20251001', this)">
                 <div class="ai-card-radio"></div>
                 <div class="ai-card-info">
                   <div class="ai-card-name">Claude Haiku 4.5</div>
@@ -2229,7 +2295,7 @@
   };
 
   let aiConfig = {
-    model:        'claude-sonnet-4-20250514',
+    model:        'claude-sonnet-4-6',
     max_tokens:   1000,
     persona:      'jade',
     custom_prompt: '',
@@ -2884,6 +2950,17 @@
     jitter('tmp-val','tmp-bar',40,6);
   }, 2000);
 
+  // ─── Agent mode ───────────────────────────────────────────────────────────
+  let agentMode = false;
+  function toggleAgentMode() {
+    agentMode = !agentMode;
+    const btn = document.getElementById('agent-toggle-btn');
+    btn.classList.toggle('active', agentMode);
+    btn.textContent = agentMode ? '⚡ AGENT ON' : '⚡ AGENT';
+    addLog('AGENT', agentMode ? 'Computer control ON' : 'OFF');
+    if (agentMode) appendMessage('jade', '[ AGENT MODE ENABLED ]\nJADE can now control your computer — execute commands, open apps, read and write files, take screenshots.\n\nTell me what you need done.');
+  }
+
   // ─── Log ─────────────────────────────────────────────────────────────────
   let reqCount = 0, tokCount = 0;
   function addLog(tag, msg) {
@@ -3398,7 +3475,8 @@
     let gotError  = false;
 
     try {
-      const res = await fetch('/api/chat/stream', {
+      const endpoint = agentMode ? '/api/chat/agent' : '/api/chat/stream';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3413,18 +3491,68 @@
       const decoder = new TextDecoder();
       let lineBuffer = '';
 
+      // Agent mode: active tool block elements
+      let currentToolBlock = null;
+      let currentToolOutput = null;
+
       function processSSELine(line) {
         if (!line.startsWith('data: ')) return;
         let data;
         try { data = JSON.parse(line.slice(6)); } catch { return; }
+
         if (data.t !== undefined) {
+          // Regular text chunk — append to bubble
           fullReply += data.t;
-          bubble.textContent = fullReply;
+          if (agentMode) {
+            // In agent mode, text goes into bubble after tool blocks
+            bubble.innerHTML = renderMarkdown(fullReply);
+          } else {
+            bubble.textContent = fullReply;
+          }
           msgs.scrollTop = msgs.scrollHeight;
+
+        } else if (data.tool !== undefined) {
+          // Tool invocation — create a collapsible block
+          const inputSummary = data.input
+            ? Object.values(data.input).filter(v => typeof v === 'string').join(' ').slice(0, 100)
+            : '';
+          const block = document.createElement('div');
+          block.className = 'tool-block tool-running';
+
+          const header = document.createElement('div');
+          header.className = 'tool-header';
+          header.onclick = () => block.classList.toggle('open');
+          const icon = document.createElement('span'); icon.className = 'tool-icon'; icon.textContent = '⚡';
+          const name = document.createElement('span'); name.className = 'tool-name'; name.textContent = data.tool;
+          const cmd  = document.createElement('span'); cmd.className  = 'tool-cmd';  cmd.textContent  = inputSummary;
+          const chev = document.createElement('span'); chev.className = 'tool-chevron'; chev.textContent = '▼';
+          header.append(icon, name, cmd, chev);
+
+          const output = document.createElement('div');
+          output.className = 'tool-output';
+          block.append(header, output);
+
+          bubble.parentElement.insertBefore(block, bubble);
+          currentToolBlock = block;
+          currentToolOutput = output;
+          msgs.scrollTop = msgs.scrollHeight;
+
+        } else if (data.tool_result !== undefined) {
+          // Tool result arrived
+          if (currentToolBlock) {
+            currentToolBlock.classList.remove('tool-running');
+            currentToolBlock.classList.add('open'); // auto-expand result
+            currentToolOutput.textContent = data.output || '';
+            currentToolBlock = null;
+            currentToolOutput = null;
+          }
+          msgs.scrollTop = msgs.scrollHeight;
+
         } else if (data.searching) {
           document.getElementById('searching').classList.add('visible');
         } else if (data.done) {
           document.getElementById('searching').classList.remove('visible');
+          if (data.full) fullReply = data.full;
         } else if (data.error) {
           gotError = true;
           const errDetail = data.error.message || data.error.error?.message || JSON.stringify(data.error);
@@ -3435,20 +3563,16 @@
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         lineBuffer += decoder.decode(value, { stream: true });
         const lines = lineBuffer.split('\n');
-        lineBuffer = lines.pop(); // neúplný řádek ponech v bufferu
+        lineBuffer = lines.pop();
         for (const line of lines) processSSELine(line);
       }
-
-      // Zpracuj případný zbytek v bufferu po zavření streamu
       if (lineBuffer.trim()) processSSELine(lineBuffer);
 
       if (!fullReply && !gotError) throw new Error('Empty response');
-      if (gotError) return;  // error already shown in bubble
+      if (gotError) return;
 
-      // Stream skončil — vyrenderuj markdown
       document.getElementById('searching').classList.remove('visible');
       const html = renderMarkdown(fullReply);
       bubble.innerHTML = html;
