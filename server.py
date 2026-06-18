@@ -454,9 +454,10 @@ def execute_agent_tool(name, input_data):
             output = out
             if err:
                 output += ("\n[STDERR] " + err) if output else ("[STDERR] " + err)
-            if result.returncode != 0 and not output:
-                output = f"Exit code: {result.returncode}"
-            return output or "(command completed, no output)"
+            if result.returncode == 0:
+                return output if output else "SUCCESS (exit code 0, no output — command ran OK)"
+            else:
+                return f"FAILED (exit code {result.returncode})" + (f"\n{output}" if output else "")
 
         elif name == "read_file":
             path = input_data.get("path", "")
@@ -547,11 +548,11 @@ Available tools:
 • take_screenshot — {}
 
 Rules:
-- Output ONE <tool_call> at a time, wait for the result
-- Results are provided as [TOOL RESULT] messages
-- Chain multiple tool calls as needed to complete the task
-- After finishing, briefly confirm what was done
-- If a command fails, try an alternative approach
+- Output ONE <tool_call> at a time, then WAIT for the [TOOL RESULT] before doing anything else
+- If [TOOL RESULT] contains "SUCCESS", "Opened:", or any non-error output → the action SUCCEEDED, do NOT call the same tool again
+- Only call a tool again if the result explicitly says "FAILED" or "Error:"
+- After completing the user's request, respond with ONE short confirmation sentence and STOP — no more tool calls
+- Do not open/run something twice "to make sure" — trust the result
 """
 
 # ── System prompt builder ─────────────────────────────────────────────────────
@@ -826,6 +827,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path == '/api/memory':
             self.send_json(200, load_memory())
 
+        # ── Settings read ─────────────────────────────────────────────────────
+        elif self.path == '/api/settings':
+            user  = get_current_user()
+            email = user.get('email') if user else None
+            if not email:
+                self.send_json(200, {'settings': {}})
+            else:
+                mem      = load_memory(email)
+                settings = mem.get('_settings', {})
+                self.send_json(200, {'settings': settings})
+
         # ── Conversation history: list ────────────────────────────────────────
         elif self.path == '/api/conversations':
             user = get_current_user()
@@ -1066,6 +1078,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 except Exception as e:
                     self.send_json(500, {'error': str(e)})
 
+        # ── Settings sync ─────────────────────────────────────────────────────
+        elif self.path == '/api/settings':
+            user  = get_current_user()
+            email = user.get('email') if user else None
+            if not email:
+                self.send_json(401, {'error': 'Not authenticated'})
+            else:
+                try:
+                    data = json.loads(body)
+                    mem  = load_memory(email)
+                    mem['_settings'] = data.get('settings', {})
+                    save_memory(mem, email)
+                    self.send_json(200, {'ok': True})
+                except Exception as e:
+                    self.send_json(400, {'error': str(e)})
+
         # ── Clear memory ──────────────────────────────────────────────────────
         elif self.path == '/api/memory/clear':
             user = get_current_user()
@@ -1268,6 +1296,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 current_messages = list(messages)
                 full_reply = ''
+                called_tools = []  # deduplication: (name, args_json)
 
                 for iteration in range(12):
                     agent_payload = {
@@ -1277,7 +1306,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         'messages':   current_messages,
                     }
 
-                    # Stream response, detect <tool_call> tags
+                    # Stream response, detect <tool_call> and strip <thinking> tags
                     accumulated = ''
                     sent_pos    = 0
                     tool_hit    = False
@@ -1289,14 +1318,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             continue
                         tc_idx = accumulated.find('<tool_call>', sent_pos)
                         if tc_idx != -1:
-                            # Send text before the tag
-                            before = accumulated[sent_pos:tc_idx].strip()
+                            # Send text before the tag (strip thinking blocks first)
+                            before = re.sub(r'<thinking>.*?</thinking>', '', accumulated[sent_pos:tc_idx], flags=re.DOTALL).strip()
                             if before:
                                 words = before.split(' ')
                                 for i, w in enumerate(words):
                                     sse({'t': w + ('' if i == len(words)-1 else ' ')})
                                 full_reply += (' ' if full_reply else '') + before
                             tool_hit = True
+                            continue
+                        # Skip if inside a <thinking> block
+                        think_start = accumulated.find('<thinking>', sent_pos)
+                        think_end   = accumulated.find('</thinking>')
+                        if think_start != -1 and (think_end == -1 or think_end < think_start):
+                            # Inside thinking block — flush text before it, then pause
+                            if think_start > sent_pos:
+                                chunk_out = accumulated[sent_pos:think_start]
+                                sse({'t': chunk_out})
+                                full_reply += chunk_out
+                            sent_pos = think_start
+                            continue
+                        if think_start != -1 and think_end != -1 and think_end >= think_start:
+                            # Full thinking block visible — skip it
+                            sent_pos = think_end + len('</thinking>')
                             continue
                         # Safe flush (keep GUARD chars buffered)
                         safe_end = max(sent_pos, len(accumulated) - GUARD)
@@ -1307,8 +1351,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             sent_pos = safe_end
 
                     if not tool_hit:
-                        # Flush tail
-                        tail = accumulated[sent_pos:]
+                        # Flush tail — strip any remaining thinking blocks
+                        tail = re.sub(r'<thinking>.*?</thinking>', '', accumulated[sent_pos:], flags=re.DOTALL)
                         if tail:
                             sse({'t': tail})
                             full_reply += tail
@@ -1342,6 +1386,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         apply_memory_blocks(full_reply)
                         break
 
+                    # Deduplication — skip if this exact call already ran this turn
+                    call_sig = f'{tool_name}:{json.dumps(tool_args, sort_keys=True)}'
+                    if call_sig in called_tools:
+                        print(f'  [AGENT] Duplicate call blocked: {call_sig[:80]}')
+                        apply_memory_blocks(full_reply)
+                        break
+                    called_tools.append(call_sig)
+
                     sse({'tool': tool_name, 'input': tool_args})
                     print(f'  [AGENT] {tool_name}: {json.dumps(tool_args)[:120]}')
 
@@ -1368,6 +1420,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             f'[TOOL RESULT: {tool_name}]\n{result_str}\n[END TOOL RESULT]\nContinue with the task.'
                         })
 
+                # Pokud je odpověď prázdná ale nástroje byly použity — pošli potvrzení
+                if not full_reply.strip() and called_tools:
+                    full_reply = 'Done.'
+                    sse({'t': full_reply})
                 sse({'done': True, 'full': full_reply})
 
             except urllib.error.HTTPError as e:

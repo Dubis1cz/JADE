@@ -1558,7 +1558,6 @@
       </svg>
     </button>
     <input class="input-field" id="user-input" type="text" placeholder="What do you need, sir?" autocomplete="off" />
-    <button class="agent-toggle-btn" id="agent-toggle-btn" onclick="toggleAgentMode()" title="Agent Mode — JADE controls your computer">⚡ AGENT</button>
     <button class="send-btn" id="send-btn" onclick="sendMessage()">TRANSMIT</button>
   </div>
 
@@ -2249,6 +2248,89 @@
   // Load memory on start and after each JADE reply
   loadMemory();
 
+  // ─── Cloud settings sync ──────────────────────────────────────────────────
+  async function saveCloudSettings() {
+    try {
+      const settings = {
+        ai:            JSON.parse(localStorage.getItem('jade_ai_config')    || '{}'),
+        voice:         JSON.parse(localStorage.getItem('jade_voice_config') || '{}'),
+        theme:         localStorage.getItem('jade-theme')         || 'blue',
+        zoom:          parseInt(localStorage.getItem('jade-zoom') || '100'),
+        notif_desktop: localStorage.getItem('jade-notif-desktop') === '1',
+        notif_sound:   localStorage.getItem('jade-notif-sound')   === '1',
+        panel_left:    localStorage.getItem('jade-panel-left')    !== '0',
+        panel_right:   localStorage.getItem('jade-panel-right')   !== '0',
+      };
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+      });
+    } catch (e) { /* offline — ignore */ }
+  }
+
+  async function loadCloudSettings() {
+    try {
+      const res = await fetch('/api/settings');
+      if (!res.ok) return;
+      const { settings } = await res.json();
+      if (!settings || !Object.keys(settings).length) return;
+
+      // AI config
+      if (settings.ai && Object.keys(settings.ai).length) {
+        localStorage.setItem('jade_ai_config', JSON.stringify(settings.ai));
+        loadAIConfig();
+        // Highlight correct card
+        if (settings.ai.model) {
+          document.querySelectorAll('.ai-card').forEach(c => {
+            const onclick = c.getAttribute('onclick') || '';
+            const isSelected = onclick.includes(`'${settings.ai.model}'`);
+            c.classList.toggle('selected', isSelected);
+          });
+        }
+      }
+
+      // Voice config
+      if (settings.voice && Object.keys(settings.voice).length) {
+        localStorage.setItem('jade_voice_config', JSON.stringify(settings.voice));
+        loadVoiceConfig();
+      }
+
+      // Theme
+      if (settings.theme) {
+        localStorage.setItem('jade-theme', settings.theme);
+        setTheme(settings.theme);
+      }
+
+      // Zoom
+      if (settings.zoom) {
+        localStorage.setItem('jade-zoom', String(settings.zoom));
+        applyZoom(settings.zoom);
+      }
+
+      // Notifications
+      if (settings.notif_desktop !== undefined) {
+        localStorage.setItem('jade-notif-desktop', settings.notif_desktop ? '1' : '0');
+        const el = document.getElementById('notif-desktop');
+        if (el) el.checked = settings.notif_desktop;
+      }
+      if (settings.notif_sound !== undefined) {
+        localStorage.setItem('jade-notif-sound', settings.notif_sound ? '1' : '0');
+        const el = document.getElementById('notif-sound');
+        if (el) el.checked = settings.notif_sound;
+      }
+
+      // Panels
+      if (settings.panel_left  !== undefined) togglePanel('left',  settings.panel_left);
+      if (settings.panel_right !== undefined) togglePanel('right', settings.panel_right);
+
+      console.log('[SETTINGS] Cloud settings applied');
+    } catch (e) { /* offline — ignore */ }
+  }
+
+  // Load cloud settings on startup
+  loadCloudSettings();
+
   // ─── Conversation History ─────────────────────────────────────────────────
   let currentConvId  = null;
   let historyPanelOpen = false;
@@ -2341,6 +2423,7 @@
     const promptEl = document.getElementById('ai-custom-prompt');
     if (promptEl) aiConfig.custom_prompt = promptEl.value.trim();
     localStorage.setItem('jade_ai_config', JSON.stringify(aiConfig));
+    saveCloudSettings();
     const st = document.getElementById('ai-status');
     st.textContent = '✓ SAVED'; st.className = 'profile-status ok';
     setTimeout(() => { st.textContent = ''; }, 2500);
@@ -2368,6 +2451,7 @@
     voiceConfig.pitch      = parseFloat(document.getElementById('voice-pitch')?.value || 0.82);
     voiceConfig.voiceName  = document.getElementById('voice-select')?.value || '';
     localStorage.setItem('jade_voice_config', JSON.stringify(voiceConfig));
+    saveCloudSettings();
     // Update mic button visibility
     const micBtn = document.getElementById('mic-btn');
     if (micBtn) micBtn.style.display = voiceConfig.sttEnabled ? '' : 'none';
@@ -2470,6 +2554,7 @@
       document.body.style.zoom = currentZoom + '%'; // fallback pro dev bez Electronu
     }
     localStorage.setItem('jade-zoom', currentZoom);
+    saveCloudSettings();
   }
 
   function loadAppearanceTab() {
@@ -2521,6 +2606,7 @@
     r.style.setProperty('--hud-border',    t.glow.replace('0.4', '0.3'));
     r.style.setProperty('--text-dim',      t.glow.replace('0.4', '0.6'));
     localStorage.setItem('jade-theme', name);
+    saveCloudSettings();
     document.querySelectorAll('.theme-btn').forEach(b => {
       b.style.fontWeight = b.dataset.theme === name ? '700' : '400';
       b.style.boxShadow  = b.dataset.theme === name ? `0 0 8px ${t.main}` : '';
@@ -2540,6 +2626,7 @@
       el.style.display = visible ? '' : 'none';
     });
     localStorage.setItem('jade-panel-' + side, visible ? '1' : '0');
+    saveCloudSettings();
   }
 
   // Aplikuj uložený stav panelů
@@ -2617,6 +2704,7 @@
   function saveNotifPrefs() {
     localStorage.setItem('jade-notif-desktop', document.getElementById('notif-desktop').checked ? '1' : '0');
     localStorage.setItem('jade-notif-sound',   document.getElementById('notif-sound').checked   ? '1' : '0');
+    saveCloudSettings();
   }
 
   function testNotification() {
@@ -2949,17 +3037,6 @@
     jitter('pwr-val','pwr-bar',85,8);
     jitter('tmp-val','tmp-bar',40,6);
   }, 2000);
-
-  // ─── Agent mode ───────────────────────────────────────────────────────────
-  let agentMode = false;
-  function toggleAgentMode() {
-    agentMode = !agentMode;
-    const btn = document.getElementById('agent-toggle-btn');
-    btn.classList.toggle('active', agentMode);
-    btn.textContent = agentMode ? '⚡ AGENT ON' : '⚡ AGENT';
-    addLog('AGENT', agentMode ? 'Computer control ON' : 'OFF');
-    if (agentMode) appendMessage('jade', '[ AGENT MODE ENABLED ]\nJADE can now control your computer — execute commands, open apps, read and write files, take screenshots.\n\nTell me what you need done.');
-  }
 
   // ─── Log ─────────────────────────────────────────────────────────────────
   let reqCount = 0, tokCount = 0;
@@ -3475,7 +3552,7 @@
     let gotError  = false;
 
     try {
-      const endpoint = agentMode ? '/api/chat/agent' : '/api/chat/stream';
+      const endpoint = '/api/chat/agent';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3503,12 +3580,7 @@
         if (data.t !== undefined) {
           // Regular text chunk — append to bubble
           fullReply += data.t;
-          if (agentMode) {
-            // In agent mode, text goes into bubble after tool blocks
-            bubble.innerHTML = renderMarkdown(fullReply);
-          } else {
-            bubble.textContent = fullReply;
-          }
+          bubble.textContent = fullReply;
           msgs.scrollTop = msgs.scrollHeight;
 
         } else if (data.tool !== undefined) {
@@ -3570,7 +3642,8 @@
       }
       if (lineBuffer.trim()) processSSELine(lineBuffer);
 
-      if (!fullReply && !gotError) throw new Error('Empty response');
+      const hasToolBlocks = bubble.parentElement.querySelector('.tool-block') !== null;
+      if (!fullReply && !gotError && !hasToolBlocks) throw new Error('Empty response');
       if (gotError) return;
 
       document.getElementById('searching').classList.remove('visible');
